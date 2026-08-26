@@ -1,0 +1,25 @@
+name: Repository Policy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  readme:
+    name: README policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate repository boundary documentation
+        run: |
+          test -s README.md
+          test -s LICENSE
+          grep -q '^## 职责' README.md
+          grep -q '^## 依赖关系' README.md
+          grep -q '^## 禁止事项' README.md
+
