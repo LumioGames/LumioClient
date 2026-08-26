@@ -19,7 +19,9 @@ jobs:
         run: |
           test -s README.md
           test -s LICENSE
-          grep -q '^## 职责' README.md
-          grep -q '^## 依赖关系' README.md
-          grep -q '^## 禁止事项' README.md
-
+          test -s docs/architecture/LumioGameEngine_Architecture_v0.3.md
+          grep -q '^## 职责$' README.md
+          grep -q '^## 明确不负责什么$' README.md
+          grep -q '^## Source / Compile-Time Dependencies$' README.md
+          grep -q '^## Headless Test Surface$' README.md
+          grep -q '^# LumioGameEngine V3 (v0.3)' docs/architecture/LumioGameEngine_Architecture_v0.3.md
