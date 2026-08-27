@@ -1,0 +1,16 @@
+{
+  "name": "Lumio.Client.Input",
+  "rootNamespace": "Lumio.Client.Input",
+  "references": [
+    "Lumio.Client.Observability"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

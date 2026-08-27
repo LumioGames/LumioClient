@@ -1,0 +1,10 @@
+<Project>
+  <ItemGroup Condition="'$(LumioProduction)' != 'false'">
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="System.Threading.Channels" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)eng\banned-public-api.txt" />
+  </ItemGroup>
+</Project>

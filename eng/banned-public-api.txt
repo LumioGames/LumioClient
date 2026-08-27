@@ -1,0 +1,9 @@
+# Banned API for LumioClient production assemblies.
+# Format: T:Full.TypeName; message
+T:UnityEngine.Object; Unity types stay in unity-adapter
+T:UnityEngine.MonoBehaviour; Unity types stay in unity-adapter
+T:Unity.InputSystem.InputAction; Unity Input System stays in unity-adapter
+T:HybridCLR.RuntimeApi; HybridCLR types stay in hybridclr-adapter
+T:Serilog.ILogger; Serilog stays behind observability adapters
+T:OpenTelemetry.Trace.Tracer; OpenTelemetry stays behind observability adapters
+T:System.Net.Sockets.Socket; sockets stay behind remote transport adapters

@@ -35,14 +35,14 @@ metadata:
 
 ## 项目测试栈与命令
 
-当前仓库尚未提交客户端实现工程；现阶段默认验证为：
+仓库收口门槛仍是：
 
 ```text
 node .spec/tools/spec-lint.mjs
 node --test .spec/tools/spec-lint.test.mjs
 ```
 
-首次引入实现工程时，必须加入 C# 单元/集成测试、Headless Bot、Unity 设备 Smoke、formatter/analyzer 和平台矩阵命令。公共 Contract 变更还必须在 `LumioGameEngineArchitecture` 安装 `requirements-dev.txt` 后运行 `python3 tools/lumio_contract.py validate`。
+Foundation 已引入 SDK `10.0.400`（`global.json` `rollForward: disable`）与 xUnit v3 测试面。涉及实现的改动还必须跑对应项目的 `dotnet test`（ArchitectureTests / IntegrationTests / 各模块 `modules/<name>/tests`）。Unity 设备 Smoke 与 HybridCLR 矩阵仍受未创建的 SPIKE 阻塞，不进入默认收口。公共 Contract 变更还必须在 `LumioGameEngineArchitecture` 安装 `requirements-dev.txt` 后运行 `python3 tools/lumio_contract.py validate`。
 
 ## 本仓 Headless / 契约测试面
 

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Lumio.Client.Connection</RootNamespace>
+    <AssemblyName>Lumio.Client.Connection</AssemblyName>
+    <Description>LumioClient connection module</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumio.Client.Connection.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\observability\src\Lumio.Client.Observability.csproj" />
+  </ItemGroup>
+</Project>

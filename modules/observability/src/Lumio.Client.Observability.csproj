@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Lumio.Client.Observability</RootNamespace>
+    <AssemblyName>Lumio.Client.Observability</AssemblyName>
+    <Description>LumioClient observability module</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumio.Client.Observability.Tests" />
+  </ItemGroup>
+</Project>

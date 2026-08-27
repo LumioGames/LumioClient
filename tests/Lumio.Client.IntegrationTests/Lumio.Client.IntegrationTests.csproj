@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LumioProduction>false</LumioProduction>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Lumio.Client.IntegrationTests</RootNamespace>
+    <AssemblyName>Lumio.Client.IntegrationTests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>LumioClientRepoRoot</_Parameter1>
+      <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..'))</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\modules\session\src\Lumio.Client.Session.csproj" />
+    <ProjectReference Include="..\..\modules\connection\src\Lumio.Client.Connection.csproj" />
+    <ProjectReference Include="..\..\modules\handshake\src\Lumio.Client.Handshake.csproj" />
+    <ProjectReference Include="..\..\modules\replica\src\Lumio.Client.Replica.csproj" />
+    <ProjectReference Include="..\..\modules\prediction\src\Lumio.Client.Prediction.csproj" />
+    <ProjectReference Include="..\..\modules\input\src\Lumio.Client.Input.csproj" />
+    <ProjectReference Include="..\..\modules\persistence\src\Lumio.Client.Persistence.csproj" />
+    <ProjectReference Include="..\..\modules\observability\src\Lumio.Client.Observability.csproj" />
+    <ProjectReference Include="..\..\modules\unity-adapter\src\Lumio.Client.UnityAdapter.csproj" />
+    <ProjectReference Include="..\..\modules\hybridclr-adapter\src\Lumio.Client.HybridClrAdapter.csproj" />
+    <ProjectReference Include="..\..\modules\bot\src\Lumio.Client.Bot.csproj" />
+  </ItemGroup>
+</Project>

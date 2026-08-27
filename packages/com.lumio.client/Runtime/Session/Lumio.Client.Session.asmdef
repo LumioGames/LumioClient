@@ -1,0 +1,22 @@
+{
+  "name": "Lumio.Client.Session",
+  "rootNamespace": "Lumio.Client.Session",
+  "references": [
+    "Lumio.Client.Connection",
+    "Lumio.Client.Handshake",
+    "Lumio.Client.Replica",
+    "Lumio.Client.Prediction",
+    "Lumio.Client.Input",
+    "Lumio.Client.Persistence",
+    "Lumio.Client.Observability"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

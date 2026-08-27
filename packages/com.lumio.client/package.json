@@ -1,0 +1,7 @@
+{
+  "name": "com.lumio.client",
+  "version": "0.0.1",
+  "displayName": "Lumio Client",
+  "description": "UPM skeleton matching the LumioClient ProjectReference DAG. Unity 6.3 AOT matrix is gated on SPIKE-UNITY-63-AOT-MATRIX.",
+  "documentationUrl": "https://github.com/LumioGames/LumioClient"
+}

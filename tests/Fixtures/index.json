@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "upstreamCorpusPin": {
+    "requirement": "UPSTREAM-GENERATED-CONTRACT-API-MAP",
+    "status": "unpublished",
+    "packageId": null,
+    "packageVersion": null,
+    "hashes": []
+  },
+  "localFaultScripts": [
+    {
+      "id": "late-generation-drop",
+      "description": "Owner tick drops events with generation less than current.",
+      "schemaFields": null
+    },
+    {
+      "id": "critical-queue-full",
+      "description": "Critical/Durable QueueFull returns without overwrite.",
+      "schemaFields": null
+    }
+  ]
+}

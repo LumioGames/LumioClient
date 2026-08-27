@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Lumio.Client.Prediction</RootNamespace>
+    <AssemblyName>Lumio.Client.Prediction</AssemblyName>
+    <Description>LumioClient prediction module</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumio.Client.Prediction.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\observability\src\Lumio.Client.Observability.csproj" />
+  </ItemGroup>
+</Project>

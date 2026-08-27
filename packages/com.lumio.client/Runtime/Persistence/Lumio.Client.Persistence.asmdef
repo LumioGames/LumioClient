@@ -1,0 +1,16 @@
+{
+  "name": "Lumio.Client.Persistence",
+  "rootNamespace": "Lumio.Client.Persistence",
+  "references": [
+    "Lumio.Client.Observability"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Lumio.Client.UnityAdapter</RootNamespace>
+    <AssemblyName>Lumio.Client.UnityAdapter</AssemblyName>
+    <Description>LumioClient unity-adapter module</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumio.Client.UnityAdapter.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\session\src\Lumio.Client.Session.csproj" />
+    <ProjectReference Include="..\..\input\src\Lumio.Client.Input.csproj" />
+    <ProjectReference Include="..\..\observability\src\Lumio.Client.Observability.csproj" />
+  </ItemGroup>
+</Project>

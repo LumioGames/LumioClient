@@ -3,3 +3,11 @@ node_modules/
 *.log
 .env
 .env.*
+
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+TestResults/
+artifacts/

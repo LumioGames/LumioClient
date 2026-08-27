@@ -1,0 +1,16 @@
+{
+  "name": "Lumio.Client.Prediction",
+  "rootNamespace": "Lumio.Client.Prediction",
+  "references": [
+    "Lumio.Client.Observability"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

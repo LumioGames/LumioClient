@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Lumio.Client.Persistence</RootNamespace>
+    <AssemblyName>Lumio.Client.Persistence</AssemblyName>
+    <Description>LumioClient persistence module</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumio.Client.Persistence.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\observability\src\Lumio.Client.Observability.csproj" />
+  </ItemGroup>
+</Project>

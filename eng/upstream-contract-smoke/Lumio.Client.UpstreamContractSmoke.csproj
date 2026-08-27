@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LumioProduction>false</LumioProduction>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Lumio.Client.UpstreamContractSmoke</RootNamespace>
+    <AssemblyName>Lumio.Client.UpstreamContractSmoke</AssemblyName>
+  </PropertyGroup>
+</Project>

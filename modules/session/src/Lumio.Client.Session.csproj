@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Lumio.Client.Session</RootNamespace>
+    <AssemblyName>Lumio.Client.Session</AssemblyName>
+    <Description>LumioClient session module</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumio.Client.Session.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\connection\src\Lumio.Client.Connection.csproj" />
+    <ProjectReference Include="..\..\handshake\src\Lumio.Client.Handshake.csproj" />
+    <ProjectReference Include="..\..\replica\src\Lumio.Client.Replica.csproj" />
+    <ProjectReference Include="..\..\prediction\src\Lumio.Client.Prediction.csproj" />
+    <ProjectReference Include="..\..\input\src\Lumio.Client.Input.csproj" />
+    <ProjectReference Include="..\..\persistence\src\Lumio.Client.Persistence.csproj" />
+    <ProjectReference Include="..\..\observability\src\Lumio.Client.Observability.csproj" />
+  </ItemGroup>
+</Project>

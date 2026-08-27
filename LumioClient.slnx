@@ -1,0 +1,32 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+  </Configurations>
+  <Project Path="modules/session/src/Lumio.Client.Session.csproj" />
+  <Project Path="modules/session/tests/Lumio.Client.Session.Tests.csproj" />
+  <Project Path="modules/connection/src/Lumio.Client.Connection.csproj" />
+  <Project Path="modules/connection/tests/Lumio.Client.Connection.Tests.csproj" />
+  <Project Path="modules/handshake/src/Lumio.Client.Handshake.csproj" />
+  <Project Path="modules/handshake/tests/Lumio.Client.Handshake.Tests.csproj" />
+  <Project Path="modules/replica/src/Lumio.Client.Replica.csproj" />
+  <Project Path="modules/replica/tests/Lumio.Client.Replica.Tests.csproj" />
+  <Project Path="modules/prediction/src/Lumio.Client.Prediction.csproj" />
+  <Project Path="modules/prediction/tests/Lumio.Client.Prediction.Tests.csproj" />
+  <Project Path="modules/input/src/Lumio.Client.Input.csproj" />
+  <Project Path="modules/input/tests/Lumio.Client.Input.Tests.csproj" />
+  <Project Path="modules/persistence/src/Lumio.Client.Persistence.csproj" />
+  <Project Path="modules/persistence/tests/Lumio.Client.Persistence.Tests.csproj" />
+  <Project Path="modules/observability/src/Lumio.Client.Observability.csproj" />
+  <Project Path="modules/observability/tests/Lumio.Client.Observability.Tests.csproj" />
+  <Project Path="modules/unity-adapter/src/Lumio.Client.UnityAdapter.csproj" />
+  <Project Path="modules/unity-adapter/tests/Lumio.Client.UnityAdapter.Tests.csproj" />
+  <Project Path="modules/hybridclr-adapter/src/Lumio.Client.HybridClrAdapter.csproj" />
+  <Project Path="modules/hybridclr-adapter/tests/Lumio.Client.HybridClrAdapter.Tests.csproj" />
+  <Project Path="modules/bot/src/Lumio.Client.Bot.csproj" />
+  <Project Path="modules/bot/tests/Lumio.Client.Bot.Tests.csproj" />
+  <Project Path="modules/bot/host/Lumio.Client.Bot.Host.csproj" />
+  <Project Path="tests/Lumio.Client.ArchitectureTests/Lumio.Client.ArchitectureTests.csproj" />
+  <Project Path="tests/Lumio.Client.IntegrationTests/Lumio.Client.IntegrationTests.csproj" />
+  <Project Path="eng/upstream-contract-smoke/Lumio.Client.UpstreamContractSmoke.csproj" />
+</Solution>

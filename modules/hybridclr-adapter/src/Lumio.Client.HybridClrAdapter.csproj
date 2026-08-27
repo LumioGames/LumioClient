@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Lumio.Client.HybridClrAdapter</RootNamespace>
+    <AssemblyName>Lumio.Client.HybridClrAdapter</AssemblyName>
+    <Description>LumioClient hybridclr-adapter module</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumio.Client.HybridClrAdapter.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\handshake\src\Lumio.Client.Handshake.csproj" />
+    <ProjectReference Include="..\..\observability\src\Lumio.Client.Observability.csproj" />
+  </ItemGroup>
+</Project>

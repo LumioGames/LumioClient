@@ -1,0 +1,17 @@
+{
+  "name": "Lumio.Client.Handshake",
+  "rootNamespace": "Lumio.Client.Handshake",
+  "references": [
+    "Lumio.Client.Connection",
+    "Lumio.Client.Observability"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}
