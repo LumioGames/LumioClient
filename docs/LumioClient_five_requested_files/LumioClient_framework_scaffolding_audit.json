@@ -1,0 +1,572 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-27",
+  "architecture_baseline": "LGE-V1.2-2026-08-27",
+  "recovery": {
+    "mode": "reconstructed_from_prior_delivery_specification",
+    "original_temporary_handles_available": false,
+    "byte_identical_to_expired_attachments": false,
+    "scope": "the five filenames shown in the user screenshot"
+  },
+  "counts": {
+    "design_modules": 11,
+    "foundation_tasks": 37,
+    "vertical_slice_tasks": 15,
+    "archive_files_expected": 5,
+    "production_source_files": 0
+  },
+  "files": [
+    {
+      "name": "2026-08-27-client-framework-scaffolding-design.md",
+      "bytes": 139853,
+      "sha256": "f23a7d27418a54e8327a373f4cb70f9ba58311001cbe010decedd790f477ba00"
+    },
+    {
+      "name": "2026-08-27-client-foundation-implementation.md",
+      "bytes": 81681,
+      "sha256": "899b6590bd02ef48b6f8c8e2a0da684ee27e4e64151b5d85a28f1263e026000f"
+    },
+    {
+      "name": "2026-08-27-client-vertical-slice-implementation.md",
+      "bytes": 35443,
+      "sha256": "27a49458779d3b67d88315aa8ef6928d437905f68f60854ee3626bf0898f9aa8"
+    },
+    {
+      "name": "LumioClient_framework_scaffolding_manifest.txt",
+      "bytes": 1819,
+      "sha256": "0706ca7f93bbe7572384f64658da7287ab0787292103e5813831b1e023027d5e"
+    },
+    {
+      "name": "LumioClient_framework_scaffolding_audit.json",
+      "bytes": null,
+      "sha256": null,
+      "note": "Self-referential checksum omitted inside this file."
+    }
+  ],
+  "checks": [
+    {
+      "id": "archive_expected_five_names",
+      "status": "pass",
+      "details": [
+        "2026-08-27-client-framework-scaffolding-design.md",
+        "2026-08-27-client-foundation-implementation.md",
+        "2026-08-27-client-vertical-slice-implementation.md",
+        "LumioClient_framework_scaffolding_manifest.txt",
+        "LumioClient_framework_scaffolding_audit.json"
+      ]
+    },
+    {
+      "id": "design_contains_all_11_modules",
+      "status": "pass",
+      "details": {
+        "session": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "connection": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "handshake": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "replica": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "prediction": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "input": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "persistence": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "observability": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "unity-adapter": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "hybridclr-adapter": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "bot": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        }
+      }
+    },
+    {
+      "id": "each_module_contains_sections_1_to_14",
+      "status": "pass",
+      "details": {
+        "session": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "connection": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "handshake": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "replica": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "prediction": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "input": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "persistence": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "observability": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "unity-adapter": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "hybridclr-adapter": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        "bot": {
+          "present": true,
+          "sections_1_to_14": true,
+          "section_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        }
+      }
+    },
+    {
+      "id": "design_has_project_reference_allowlist",
+      "status": "pass"
+    },
+    {
+      "id": "design_has_cross_module_port_table",
+      "status": "pass"
+    },
+    {
+      "id": "design_has_session_transition_table",
+      "status": "pass"
+    },
+    {
+      "id": "design_has_dependency_selection_table",
+      "status": "pass"
+    },
+    {
+      "id": "foundation_plan_has_wave_0_to_6",
+      "status": "pass"
+    },
+    {
+      "id": "vertical_plan_has_wave_7",
+      "status": "pass"
+    },
+    {
+      "id": "task_slug_uniqueness",
+      "status": "pass",
+      "details": {
+        "foundation": 37,
+        "vertical": 15
+      }
+    },
+    {
+      "id": "same_subwave_exact_path_overlap",
+      "status": "pass",
+      "details": {
+        "foundation": [],
+        "vertical": [],
+        "note": "Any reported overlap must be serialized by explicit dependency before execution."
+      }
+    },
+    {
+      "id": "forbidden_placeholder_tokens",
+      "status": "pass",
+      "details": {
+        "2026-08-27-client-framework-scaffolding-design.md": [],
+        "2026-08-27-client-foundation-implementation.md": [],
+        "2026-08-27-client-vertical-slice-implementation.md": []
+      }
+    },
+    {
+      "id": "no_production_source_files_in_archive",
+      "status": "pass",
+      "details": "Archive contains Markdown, TXT and JSON only."
+    },
+    {
+      "id": "utf8_readable",
+      "status": "pass"
+    }
+  ],
+  "overall_status": "pass",
+  "historical_note": "The prior conversation summary mentioned a larger 57-Markdown delivery including task-card files. This recovered package intentionally contains only the five files requested in the screenshot and does not claim to re-audit unavailable task-card files."
+}

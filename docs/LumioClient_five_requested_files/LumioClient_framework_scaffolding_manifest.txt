@@ -1,0 +1,42 @@
+LumioClient framework scaffolding — recovered five-file manifest
+Date: 2026-08-27
+Architecture baseline: LGE-V1.2-2026-08-27
+
+This archive intentionally contains exactly the five files shown in the user's screenshot.
+The former conversation download handles had expired; these are recovered copies reconstructed
+from the prior delivery specification, signatures, task order, test names, and audit summary.
+They are not claimed to be byte-for-byte identical to the expired temporary attachments.
+
+FILES
+-----
+2026-08-27-client-framework-scaffolding-design.md
+  purpose: Repository scaffolding + all 11 module implementation-level designs
+  bytes: 139853
+  sha256: f23a7d27418a54e8327a373f4cb70f9ba58311001cbe010decedd790f477ba00
+2026-08-27-client-foundation-implementation.md
+  purpose: Wave 0-6 executable Foundation plan
+  bytes: 81681
+  sha256: 899b6590bd02ef48b6f8c8e2a0da684ee27e4e64151b5d85a28f1263e026000f
+2026-08-27-client-vertical-slice-implementation.md
+  purpose: Wave 7 executable Vertical Slice plan
+  bytes: 35443
+  sha256: 27a49458779d3b67d88315aa8ef6928d437905f68f60854ee3626bf0898f9aa8
+LumioClient_framework_scaffolding_manifest.txt
+  purpose: This manifest; self-checksum intentionally omitted to avoid self-reference
+LumioClient_framework_scaffolding_audit.json
+  purpose: Fresh structural audit for this recovered five-file set; checksum recorded after creation in the ZIP central directory
+
+COUNTS
+------
+design modules: 11
+foundation plan tasks: 37
+vertical plan tasks: 15
+production source files in archive: 0
+
+EXPECTED ARCHIVE ROOT
+---------------------
+2026-08-27-client-framework-scaffolding-design.md
+2026-08-27-client-foundation-implementation.md
+2026-08-27-client-vertical-slice-implementation.md
+LumioClient_framework_scaffolding_manifest.txt
+LumioClient_framework_scaffolding_audit.json
