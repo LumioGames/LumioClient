@@ -34,7 +34,7 @@ Client 不拥有 Server 权威状态、Server Wall Clock、Release Pool 或 Voxe
 | [`handshake`](modules/handshake/README.md) | Release/Manifest/Schema/ABI/Capability 准入校验 | P0 |
 | [`replica`](modules/replica/README.md) | Snapshot/Delta/Mapping Apply、Tombstone、Gap 和 Resync | P0 |
 | [`prediction`](modules/prediction/README.md) | PredictionFrame、确认、校正、回滚与命令重放驱动 | P0 |
-| [`input`](modules/input/README.md) | 平台无关输入归一化、命令序列与有界缓冲 | P1 |
+| [`input`](modules/input/README.md) | 平台无关输入归一化、采样序列与有界缓冲 | P1 |
 | [`persistence`](modules/persistence/README.md) | 客户端设置、Config/Content 缓存和可移植 Save Adapter | P1 |
 | [`observability`](modules/observability/README.md) | Client Log、Metrics、Trace、Replay 与 Failure Bundle 出口 | P1 |
 | [`unity-adapter`](modules/unity-adapter/README.md) | Unity Host、Renderer 和平台 Input 边界 | P1 |
@@ -67,13 +67,13 @@ Active/Resyncing -> Reconnecting -> Synchronizing
 Any state -> Closed / Faulted
 ```
 
-进入 `Active` 前必须完成 Release/Manifest/Schema/ABI/Capability 校验和 FullSnapshot。Resync 期间继续采样输入的策略必须由 Host Profile 指定：默认缓冲并限制长度，超过窗口丢弃并产生诊断事件。
+进入 `Active` 前必须完成 Release/Manifest/Schema/ABI/Capability 校验、精确 Gameplay Scope 激活和 FullSnapshot。Resync 期间继续采样输入的策略必须由 Host Profile 指定：默认缓冲并限制长度，超过窗口丢弃并产生诊断事件。
 
 ## Replication 与 Prediction
 
 Transport ACK 与 Baseline ACK 分离。Delta 必须带 BaseSnapshot、From/To Revision、Sequence 和 Mapping Hash；未知 Baseline、Gap、旧 Revision、Tombstone 冲突或历史窗口不足直接请求 Full Resync。
 
-权威更新顺序由 Runtime 统一：验证 Baseline/Revision → 恢复最近 Confirmed PredictionFrame → 原子应用 ECS/GAS/Voxel 权威结果 → 删除已确认命令 → 原序重放未确认命令 → 生成表现差异。Client 只负责何时预测、何时请求校正和如何呈现。
+权威更新顺序由 Runtime 统一：验证 Baseline/Revision → 恢复最近 Confirmed PredictionFrame → 原子应用 ECS/GAS/Voxel 权威结果 → 删除已确认命令 → 原序重放未确认命令 → 生成表现差异。该链条构成单一 Runtime 事务提交，任一步失败不推进 Baseline、Confirmed Point 或 Ack。Client 只负责何时预测、何时请求校正和如何呈现。
 
 `NetEntityId` 为 128 位不透明逻辑身份；`LocalEntityId` 只在 Client World 有效。预测生成实体使用独立临时命名空间，确认包提供重映射；Destroy Tombstone 防止迟到 Delta 复活实体。
 
@@ -153,7 +153,7 @@ LumioClient Host / Unity Host / Headless Bot
 ## 当前阶段与开发节奏
 
 1. **Architecture Gate**：冻结 Replication/Prediction/Resync、Client Session、Handshake 和 Platform Capability。
-2. **Foundation**：实现 Headless Connection、Replica Apply、Input Buffer、Local Transport 和 CoreEngine 单加载。
+2. **Foundation**：实现 Headless Connection、Replica Apply、Input Buffer、Local Transport 和 CoreEngine 单加载。P1 模块只进最小切片：`observability` 的内存 Sink、结构化事件与 QueueFull 证据，`bot` 的最小 Headless Host，`input` 的有界 Sample Queue 与无玩法依赖的测试命令入口；`persistence` 可后置。
 3. **Vertical Slice**：接入不对称 Mapping、PredictionFrame、Replay、Save/Load、配置快照和日志证据。
 4. **Production Hardening**：LocalSplitProcess、RemoteDS、Unity/HybridCLR、断线重连、滚动 Release 和资源基线。
 5. **P2**：更深移动端优化、Server HybridCLR、Mod Client 能力和跨 Release Session 迁移。

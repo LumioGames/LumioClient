@@ -6,13 +6,13 @@
 
 - 阶段：未实现
 - 优先级：P0
-- 架构基线：`LGE-V1.0-2026-08-27`
-- 公共契约来源：[`World、ECS 与 Entity`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)、[`Replication、Prediction 与网络`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)
+- 架构基线：`LGE-V1.1-2026-08-27`
+- 公共契约来源：[`World、ECS 与 Entity`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#5-worldecs-与-entity)、[`Replication、Prediction 与网络`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#7-replicationprediction-与网络)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任
 
-- 校验并应用 FullSnapshot、Delta 和合法 ResyncPatch。
+- 校验 FullSnapshot、Delta 和合法 ResyncPatch，构造 Staged Authority Plan 交由单一 Runtime 权威更新事务提交。
 - 维护客户端 Baseline、SnapshotId、ReplicationRevision、Sequence 和 Mapping Hash 视图。
 - 使用生成 Mapping 将 Server Component 投影到允许的 Client Component/Field。
 - 维护 `NetEntityId -> LocalEntityId` 映射、Destroy Tombstone 和 provisional ID 确认重映射。
@@ -29,9 +29,9 @@
 
 ## 公共入口与出口
 
-**入口：** 已通过 Envelope/权限/长度校验的生成 Snapshot、Delta、ResyncPatch，当前 Runtime Replica Handle 和不可变 Negotiation Result。
+**入口：** 已通过 `connection` 帧/通道校验与 `session` Active 消息门的生成 Snapshot、Delta、ResyncPatch，当前 Runtime Replica Handle 和不可变 Negotiation Result。
 
-**出口：** 原子 Apply Result、Snapshot/Revision 更新、Entity Mapping 变化、Ack、Gap/Resync 分类和供 Runtime 生成表现差异的状态变更集。
+**出口：** Staged Authority Plan、事务提交后的 Apply Result 与 Snapshot/Revision 更新、Entity Mapping 变化、Ack、Gap/Resync 分类。Presentation Diff 由 Runtime 事务生成，本模块不生产表现真相。
 
 输出不得暴露 Runtime Storage 内部引用；LocalEntityId 只能在当前 Client World 和 Generation 内使用。
 
@@ -39,9 +39,9 @@
 
 1. `session` 在正确 Runtime Phase 提交一批已解码的权威更新。
 2. 本模块先验证 Release/Schema、Baseline、From/To Revision、Sequence、Mapping Hash 和 Tombstone。
-3. 验证全部成功后，调用 Runtime/生成 Mapping 构造原子 Apply Plan。
-4. ECS/GAS/Voxel 权威结果的共同原子顺序由 Runtime 契约保证；本模块不拆分提交。
-5. 成功后才推进本地 Baseline/Revision 并输出 Ack；失败时不产生部分可见状态。
+3. 验证全部成功后，调用 Runtime/生成 Mapping 构造 Staged Authority Plan；本模块不提交核心状态。
+4. `session` 将 Staged Plan 与 Prediction 的确认/重放集合一起交给单一 Runtime 权威更新事务；ECS/GAS/Voxel 的共同原子顺序由该事务保证。
+5. 共同事务（含未确认命令重放）提交成功后才推进本地 Baseline/Revision 并输出 Ack；任一步失败不产生部分可见状态，不允许本模块先提交、Prediction 后补偿。
 6. 无法增量恢复的情况输出 ResyncRequest，由 `session` 迁移状态。
 
 ## 依赖
@@ -63,7 +63,7 @@
 - 可忽略但需记录：已确认的完全重复消息，前提是幂等身份匹配。
 - 需 Resync：未知 Baseline、Gap、历史窗口不足、Mapping Hash 不匹配、Revision/Tombstone 冲突。
 - 可拒绝：截断、超长、未知必需字段、Schema/Release 不匹配、非法 Entity 身份。
-- 可致命：原子 Apply 后出现部分可见状态、Runtime/Mapping 契约不一致或 Replica Storage 损坏。
+- 可致命：共同事务提交后出现部分可见状态、Runtime/Mapping 契约不一致或 Replica Storage 损坏。
 - 失败不得推进 Ack 或 Revision，不得让迟到 Delta 复活已 Tombstone 的 Entity。
 
 ## 可观测性

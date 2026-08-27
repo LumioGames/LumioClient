@@ -6,8 +6,8 @@
 
 - 阶段：未实现
 - 优先级：P1
-- 架构基线：`LGE-V1.0-2026-08-27`
-- 公共契约来源：[`Host Profile、平台与能力`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)、[`Native、Managed 与 CoreEngine`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)
+- 架构基线：`LGE-V1.1-2026-08-27`
+- 公共契约来源：[`Host Profile、平台与能力`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#10-host-profile平台与能力)、[`Native、Managed 与 CoreEngine`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#8-nativemanaged-与-coreengine)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任
@@ -25,6 +25,7 @@
 - 不定义 Gameplay UI、具体内容、Input Mapping 或 GameObject 组织方式；这些由 Game 提供。
 - 不执行 Handshake 判定、Snapshot/Delta Apply 或 Prediction Rollback。
 - 不校验或加载 HybridCLR Gameplay Assembly；该能力由独立 Adapter 提供。
+- 不推进 Session 启动状态，也不绕过 Gameplay Scope 激活门；激活由 `session` 通过 Composition 注入的端口编排，本模块只消费 Session 状态与结果。
 - 不让 UnityEngine、Input System、Renderer 或平台 SDK 类型穿过稳定 Client 模块接口。
 
 ## 公共入口与出口
@@ -37,7 +38,7 @@ Unity 类型只存在于本模块内；进入核心模块前必须转换为稳�
 
 ## 数据与控制流
 
-1. Unity Host 启动 Observability 与稳定 Runtime，再创建 Session 和平台 Adapter。
+1. Unity Host 启动 Observability 与稳定 Runtime，再创建 Session 和平台 Adapter；Gameplay Scope 激活实现（预编译或 HybridCLR）由 Release Composition 选择并注入 `session`。
 2. 每帧按 Host Profile 计算 Tick 驱动，并调用 `session` 的稳定入口。
 3. 平台输入回调写入有界采样队列，由 `input` 在 Client Owner Thread 归一化。
 4. Session 输出 Presentation Diff，本模块在允许的 Unity 主线程阶段应用到 Game 提供的 Presentation Binding。

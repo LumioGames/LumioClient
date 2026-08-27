@@ -6,15 +6,15 @@
 
 - 阶段：未实现
 - 优先级：P1
-- 架构基线：`LGE-V1.0-2026-08-27`
-- 公共契约来源：[`队列与迟到输入`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)、[`Host Profile、平台与能力`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)
+- 架构基线：`LGE-V1.1-2026-08-27`
+- 公共契约来源：[`队列与迟到输入`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#43-队列与迟到输入)、[`Host Profile、平台与能力`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#10-host-profile平台与能力)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任
 
 - 定义平台无关的 Input Sample Port，接收 Unity、Desktop、Mobile 或 Bot Host 的采样值。
 - 归一化采样时间、设备值域、排序、去抖和同 Tick 合并规则。
-- 分配稳定的本地采样序列，并通过 Game 提供的生成 Mapping 产生 Gameplay Command 值。
+- 唯一分配 `InputSampleSeq` 采样序列，并通过 Game 提供的生成 Mapping 产生候选 Gameplay Command 值。
 - 管理 Active、Resync 和 Reconnect 期间的有界输入缓冲及明确丢弃策略。
 - 输出可记录、可回放的 Command Stream，并向上层报告采样或映射拒绝。
 - 保证 Host Profile 只通过 Capability/Port 驱动行为，不引入 `IsOffline` 或 `IsLocal` 分支。
@@ -24,6 +24,7 @@
 - 不引用 Unity Input System、iOS/Android、桌面窗口系统或 Bot 脚本的具体类型。
 - 不拥有具体游戏操作、按键绑定内容或 Gameplay Command Schema；这些由 Game/生成契约提供。
 - 不执行 Prediction、Rollback、Replica Apply 或网络发送。
+- 不分配 `ClientCommandSeq`；最终命令序号由 `prediction` 在命令被接纳时唯一分配，本模块只消费其返回的不可变结果。
 - 不决定 Session 状态迁移；缓冲策略由 `session` 和 Host Profile 提供。
 - 不把原始平台时间戳作为 Simulation 真相或跨平台确定性依据。
 
@@ -31,7 +32,7 @@
 
 **入口：** 平台无关 Input Sample、采样来源身份、Host Tick 上下文、生成的 Game Input Mapping、缓冲预算和 Session 输入策略。
 
-**出口：** 有序 Gameplay Command 值、ClientCommand 候选序列、Command Stream 记录、丢弃/拒绝结果和输入统计。
+**出口：** 带 `InputSampleSeq` 的有序候选 Gameplay Command 值、Command Stream 记录、丢弃/拒绝结果和输入统计；不输出 `ClientCommandSeq`。
 
 具体平台 Adapter 必须在边界外把 SDK 类型转换为稳定 Sample；本模块输出生成契约值，不输出设备对象。
 
@@ -63,12 +64,12 @@
 - 可拒绝：未知采样来源、值域非法、Mapping 不支持、Session 策略禁止输入。
 - 可丢弃：超过声明窗口的旧样本、允许合并的重复样本和低优先级 QueueFull 项；必须记录原因。
 - 需 Fault：稳定排序不可能、生成 Mapping 与 Negotiated Schema 不一致或缓冲状态损坏。
-- 任何拒绝/丢弃都不能伪造 ClientCommandSeq，也不能改变已生成命令的相对顺序。
+- 任何拒绝/丢弃都不消耗 `ClientCommandSeq`（该序号由 `prediction` 分配），也不能改变已生成候选命令的相对顺序。
 
 ## 可观测性
 
 - 记录样本数、命令数、队列水位、采样到 Tick 延迟、合并、拒绝和丢弃原因。
-- 关联字段来自生成的 Lumio Event Schema；本模块额外提供采样 SourceId、队列水位、ClientCommandSeq 和丢弃分类，不在 README 复制共享字段清单。
+- 关联字段来自生成的 Lumio Event Schema；本模块额外提供采样 SourceId、队列水位、`InputSampleSeq` 和丢弃分类，不在 README 复制共享字段清单；如需关联最终命令序号，只消费 `prediction` 返回的不可变分配结果。
 - 原始输入内容按产品隐私策略处理；文本、语音或敏感设备数据不得默认写日志。
 
 ## 验证

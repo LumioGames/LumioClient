@@ -6,8 +6,8 @@
 
 - 阶段：未实现
 - 优先级：P1
-- 架构基线：`LGE-V1.0-2026-08-27`
-- 公共契约来源：[`日志、Metrics、Trace 与审计`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)、[`工具链、测试与可观测性`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)
+- 架构基线：`LGE-V1.1-2026-08-27`
+- 公共契约来源：[`日志、Metrics、Trace 与审计`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#12-日志metricstrace-与审计)、[`工具链、测试与可观测性`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#15-工具链测试与可观测性)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任

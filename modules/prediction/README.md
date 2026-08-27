@@ -6,18 +6,19 @@
 
 - 阶段：未实现
 - 优先级：P0
-- 架构基线：`LGE-V1.0-2026-08-27`
-- 公共契约来源：[`PredictionFrame`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)、[`GAS Framework`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)
+- 架构基线：`LGE-V1.1-2026-08-27`
+- 公共契约来源：[`PredictionFrame`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#72-predictionframe)、[`GAS Framework`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#9-gas-framework)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任
 
-- 分配和跟踪 `ClientCommandSeq`、`PredictionKey`、未确认命令历史和 PredictionFrame 生命周期。
+- 在命令被 `session` 接纳进入预测/发送流程时唯一分配 `ClientCommandSeq` 与 `PredictionKey`；被拒绝或被 `input` 丢弃的样本不消耗序号。
+- 跟踪未确认命令历史和 PredictionFrame 生命周期。
 - 在 Host Profile 允许时，请求 Runtime 对生成的 Gameplay Command 执行本地预测。
-- 消费权威 Confirmation/Correction 结果，删除已确认命令并按原序重放未确认命令。
+- 消费权威 Confirmation/Correction 结果，删除已确认命令并按原序重放未确认命令；恢复与重放只在 Runtime 权威更新事务内执行。
 - 管理预测历史窗口、内存预算、过期、拒绝和重基策略。
 - 保证 ECS、GAS 与 Voxel Overlay 属于同一确认/回滚单元。
-- 输出可发送命令、预测结果、校正结果和 Presentation Diff，不把预测结果标记为权威。
+- 输出带序号的可发送命令、预测结果和校正结果；Presentation Diff 由 Runtime 事务生成，本模块只转发，不把预测结果标记为权威。
 
 ## 明确不负责什么
 
@@ -29,20 +30,20 @@
 
 ## 公共入口与出口
 
-**入口：** 由 `session` 提交的生成 Gameplay Command、当前 Tick/Frame 上下文、Runtime Prediction Port、权威 Confirmation/Correction 和历史预算。
+**入口：** 由 `session` 提交的候选 Gameplay Command（带 `InputSampleSeq`）、当前 Tick/Frame 上下文、Runtime Prediction Port、权威 Confirmation/Correction 和历史预算。
 
-**出口：** 带 `ClientCommandSeq/PredictionKey` 的出站命令、Prediction Result、Correction Result、重放统计和平台无关 Presentation Diff。
+**出口：** 带 `ClientCommandSeq/PredictionKey` 的出站命令、Prediction Result、Correction Result、重放统计和转发自 Runtime 的平台无关 Presentation Diff。
 
 本模块消费的是生成契约中的命令值，不依赖 [`input`](../input/README.md) 的采集或归一化实现。
 
 ## 数据与控制流
 
-1. `input` 产生生成契约定义的命令值，`session` 在正确 Phase 将其提交给本模块。
-2. 本模块记录命令顺序和前置 PredictionFrame，并调用 Runtime Prediction API。
+1. `input` 产生生成契约定义的候选命令值（带 `InputSampleSeq`），`session` 在正确 Phase 将其提交给本模块。
+2. 本模块接纳命令时分配 `ClientCommandSeq/PredictionKey`，记录命令顺序和前置 PredictionFrame，并调用 Runtime Prediction API。
 3. 命令通过 `session/connection` 发送，Prediction History 保持有界。
-4. 权威更新到达时，`session` 先协调 Baseline/Revision 验证，再请求 Runtime 恢复最近 Confirmed Frame。
-5. Runtime 原子应用 ECS/GAS/Voxel 权威结果；本模块删除已确认命令并原序重放剩余命令。
-6. 结果以平台无关差异交给 Host Adapter，历史推进到新的确认点。
+4. 权威更新到达时，`session` 先协调 Baseline/Revision 验证；本模块提供确认集合与待重放命令，进入单一 Runtime 权威更新事务。
+5. 事务内完成恢复、原子应用、删除已确认命令与原序重放；本模块不在事务外独立提交核心状态。
+6. 事务提交成功后，历史与 Confirmed Point 才推进；结果以平台无关差异交给 Host Adapter。
 
 ## 依赖
 

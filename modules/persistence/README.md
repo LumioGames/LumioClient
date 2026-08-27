@@ -6,8 +6,8 @@
 
 - 阶段：未实现
 - 优先级：P1
-- 架构基线：`LGE-V1.0-2026-08-27`
-- 公共契约来源：[`持久化、序列化与配置`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)、[`Release、版本共存与更新`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)
+- 架构基线：`LGE-V1.1-2026-08-27`
+- 公共契约来源：[`持久化、序列化与配置`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#11-持久化序列化与配置)、[`Release、版本共存与更新`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#13-release版本共存与更新)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任
@@ -17,13 +17,14 @@
 - 执行公共存储契约规定的 Header、完整性、压缩和资源上限校验。
 - 使用临时文件、完整校验和原子替换，保留最近有效 Checkpoint 与损坏证据。
 - 维护缓存容量、淘汰和 Release/Content Hash 隔离，防止跨 Release 误用。
+- 向 `session` 提供已验证 Config/Content Artifact 与 Checkpoint 的窄读取端口，供其在 Tick 边界请求 Runtime Config staging。
 - 将需要业务迁移的 Save 明确交给 Game Migrator，不自行猜测兼容性。
 
 ## 明确不负责什么
 
 - 不拥有 Server WAL、权威 Snapshot、Txn Journal、Command Log 的服务器恢复语义。
 - 不定义 Game Save Schema、迁移规则、配置表 Schema、配置优先级或 Canonical Serializer。
-- 不决定 Config Snapshot 在哪个 Tick 激活；GameRuntime 只消费经过验证的不可变配置快照。
+- 不决定 Config Snapshot 在哪个 Tick 激活；staging/activation 请求时机归 `session`，typed materialization 与 Tick Barrier 原子切换归 GameRuntime Config Port。
 - 不把 Unity PlayerPrefs、平台文件句柄或第三方存储类型暴露给稳定模块。
 - 不保存明文 Secret、认证 Token 或签名私钥；Secret 与普通配置必须分离。
 - 不把缓存命中结果当作已通过 Handshake 的 Release/Manifest 准入结果。
@@ -49,7 +50,7 @@
 
 - 允许依赖：[`observability`](../observability/README.md)。
 - 外部依赖：生成的 Canonical Serializer、Game Migrator Port、平台文件/存储 API。
-- 被依赖方：[`session`](../session/README.md) 可通过本模块读取客户端设置或持久化本地状态。
+- 被依赖方：[`session`](../session/README.md) 只通过窄化的已验证 Artifact/Checkpoint 读取端口使用本模块；应用设置与 Content 下载缓存由 Host/Composition 在 Session 之外使用。
 - 禁止依赖：Server Persistence 实现、Unity PlayerPrefs 公共类型、具体数据库/对象存储 SDK 的公共类型。
 
 ## 生命周期与线程模型

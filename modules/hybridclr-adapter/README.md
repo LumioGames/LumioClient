@@ -6,13 +6,14 @@
 
 - 阶段：未实现
 - 优先级：P1
-- 架构基线：`LGE-V1.0-2026-08-27`
-- 公共契约来源：[`Host Profile、平台与能力`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)、[`Release、版本共存与更新`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)
+- 架构基线：`LGE-V1.1-2026-08-27`
+- 公共契约来源：[`Host Profile、平台与能力`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#10-host-profile平台与能力)、[`Release、版本共存与更新`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#13-release版本共存与更新)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任
 
-- 实现 `handshake` 声明的平台 Capability Provider Port，报告实际可用的 HybridCLR/AOT 能力。
+- 实现 `handshake` 声明的平台 Capability Provider Port；握手前只报告静态平台/AOT 能力，不代表 Gameplay Scope 已激活。
+- 提供供 Release Composition 实现 `session` Gameplay Scope 激活端口的校验、加载与激活能力；握手成功后按精确 GameRelease Artifact 执行，激活成功前 `session` 不得进入 `Synchronizing`。
 - 校验 Client Gameplay Assembly、补充元数据和相关 Artifact 的签名、Hash、GameRelease、Schema、权限和资源预算。
 - 按 Manifest 固定顺序执行准备、加载、验证、激活、拒绝、回滚和卸载。
 - 隔离 HybridCLR/Unity API，向上层只输出稳定 Capability 和加载结果。
@@ -38,7 +39,7 @@ HybridCLR、Unity Assembly 或补充元数据对象不得穿过稳定接口；�
 ## 数据与控制流
 
 1. Host 在握手前查询本模块的静态平台/AOT Capability，并交给 `handshake`。
-2. Handshake/Manifest 准入后，Host 提供与精确 GameRelease 对应的 Artifact。
+2. Handshake/Manifest 准入后，`session` 经注入的激活端口发起激活；Composition 将调用转交本模块，并提供与精确 GameRelease 对应的 Artifact。
 3. 本模块先校验长度、签名、Hash、身份、Schema、权限和预算，再准备加载环境。
 4. Assembly 在隔离 Scope 中加载，验证导出 Contract 与 Manifest 后才允许激活。
 5. 激活失败时销毁新 Scope，并保留旧有效 Scope 或返回必须重启的稳定结果。
@@ -48,7 +49,7 @@ HybridCLR、Unity Assembly 或补充元数据对象不得穿过稳定接口；�
 
 - 允许依赖：[`handshake`](../handshake/README.md)、[`observability`](../observability/README.md)。
 - 外部依赖：Unity、HybridCLR、平台 AOT API、签名/Hash 库和生成的 Manifest/Gameplay Contract。
-- 组合关系：[`unity-adapter`](../unity-adapter/README.md) 与本模块由 `LumioGame` Release Composition 选择性组装，二者无强制源码依赖。
+- 组合关系：[`unity-adapter`](../unity-adapter/README.md) 与本模块由 `LumioGame` Release Composition 选择性组装，二者无强制源码依赖；`session` 的激活端口由 Composition 用本模块公开能力实现并注入，本模块不引用 `session` 具体实现。
 - 禁止依赖：`session` 具体实现、Replica/Prediction、Server HybridCLR、NativeCore/VoxelEngine 源码。
 
 ## 生命周期与线程模型

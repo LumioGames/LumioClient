@@ -6,8 +6,8 @@
 
 - 阶段：未实现
 - 优先级：P0
-- 架构基线：`LGE-V1.0-2026-08-27`
-- 公共契约来源：[`Replication、Prediction 与网络`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)、[`Release、版本共存与更新`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)
+- 架构基线：`LGE-V1.1-2026-08-27`
+- 公共契约来源：[`Replication、Prediction 与网络`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#7-replicationprediction-与网络)、[`Release、版本共存与更新`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#13-release版本共存与更新)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任
@@ -15,12 +15,13 @@
 - 驱动 Handshake 请求/响应流程，并精确校验 Product、GameRelease、Manifest、Schema 和协议身份。
 - 校验 Runtime API、Core ABI、Network/Replication Protocol、生成契约 Hash 和 Host Capability。
 - 聚合平台 Capability Provider 的声明；HybridCLR 只是可选 Provider，不是 Unity Client 的强制依赖。
-- 输出不可变的 Negotiation Result，供 `session` 决定进入 `Synchronizing` 或稳定拒绝。
+- 输出不可变的 Negotiation Result 与准入 Claims，供 `session` 先完成 Gameplay Scope 激活、再决定进入 `Synchronizing` 或稳定拒绝。
 - 分类版本不匹配、能力不足、权限拒绝、签名/Hash 失败和资源预算不足。
 
 ## 明确不负责什么
 
 - 不定义 Handshake/Manifest/Capability Schema，不推断未声明的跨 Release 兼容性。
+- 不校验 Active 阶段每条消息的权限；准入只证明 Session 级资格，Active 消息门由 `session` 调用生成 Validator 执行。
 - 不建立或重连 Transport；只使用 `connection` 提供的消息通道。
 - 不应用 FullSnapshot、生成 BaselineAck 或进入 `Active`。
 - 不实际加载 HybridCLR Assembly、CoreEngine 包或 Gameplay 内容。

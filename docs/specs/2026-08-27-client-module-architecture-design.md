@@ -4,9 +4,9 @@
 
 本文审阅 `LumioClient` 设计框架，并定义进入实现前采用的模块边界与模块文档规范。它只定义本仓内部的组织方式，不新增公共协议、Schema、Envelope、ABI、错误码或跨仓依赖。
 
-- 架构基线：`LGE-V1.0-2026-08-27`
+- 架构基线：`LGE-V1.1-2026-08-27`
 - 公共架构唯一来源：`LumioGameEngineArchitecture`
-- 本仓只读镜像：[`../architecture/LumioGameEngine_Architecture_v1.0.md`](../architecture/LumioGameEngine_Architecture_v1.0.md)
+- 本仓只读镜像：[`../architecture/LumioGameEngine_Architecture_v1.1.md`](../architecture/LumioGameEngine_Architecture_v1.1.md)
 - 本仓边界入口：[`../../README.md`](../../README.md)
 - 本文状态：已确认并完成模块文档落地；实现工程与业务代码尚未创建
 
@@ -48,7 +48,7 @@
 - LocalEmbedded 可以绕过 Socket、TLS 和 OS 网络栈，不能绕过 Schema、Serializer、Envelope、权限、大小限制、有界队列和 Tick 交付。
 - 网络、IO、Native Job 和平台回调只能进入有界队列；Runtime 固定 Phase 才能消费并改变 Replica/Prediction 状态。
 - 表现层只消费结果，不能成为状态真相。
-- 未完成 Release、Manifest、Schema、ABI、Capability 与 FullSnapshot 校验时，Session 不能进入 `Active`。
+- 未完成 Release、Manifest、Schema、ABI、Capability 校验、精确 Gameplay Scope 激活与 FullSnapshot 时，Session 不能进入 `Active`。
 
 ### 3.3 公共契约边界
 
@@ -157,7 +157,7 @@ persistence        -> observability
 hybridclr-adapter  -> handshake + observability
 
 all applicable modules -> published GameRuntime API
-all applicable modules -> generated Server/Runtime/Game contracts
+all applicable modules -> 纯生成 Contract Artifact（层级见下方补充规则）
 ```
 
 补充规则：
@@ -165,10 +165,13 @@ all applicable modules -> generated Server/Runtime/Game contracts
 - `session` 不复制 Runtime 的预测、回滚、ECS 或 Replica 机制，只组织调用顺序与 Session 状态迁移。
 - `handshake` 使用 `connection` 提供的消息通道，但 `connection` 不理解 Release、Schema、ABI 或 Capability 的业务含义。
 - `replica` 和 `prediction` 之间不建立工程引用；它们的共同原子边界由已发布 Runtime API 表达。
-- `input` 产生生成契约定义的命令值，`session` 将其交给 `prediction`；`prediction` 不依赖输入采集或归一化实现。
+- `input` 产生生成契约定义的候选命令值（只带 `InputSampleSeq`），`session` 将其交给 `prediction`，由 `prediction` 在接纳时分配 `ClientCommandSeq`；`prediction` 不依赖输入采集或归一化实现。
 - `observability` 只能提供事件、上下文和 Sink 端口，不能反向依赖业务模块。
 - `unity-adapter` 与 `bot` 是顶层宿主适配，不能被核心模块引用。
 - `handshake` 声明平台 Capability Provider 端口，`hybridclr-adapter` 选择性实现该端口；`unity-adapter` 不直接依赖 HybridCLR。没有该能力时，Unity Host 仍可使用稳定 Runtime 与预编译 Gameplay Assembly 启动。
+- 契约依赖分三层（ADR 0002）：已发布 Host/Runtime Port 定义于本仓模块或已发布 Runtime Contract；工具链发布的纯生成 Contract Artifact 不依赖 LumioClient 与 LumioGame 的任何实现，双方均可引用；Game 专属 Mapper/Binding 实现位于 LumioGame Release Artifact，实现本仓模块声明的端口并由 Release Composition 注入。禁止 LumioClient 核心工程直接或传递引用 `LumioGame.ClientGameplay` 实现工程，也不得用反射或 Service Locator 隐藏该引用。
+- `session -> persistence` 窄化为已验证 Artifact/Checkpoint 读取端口，供 Config staging 与本地 Checkpoint 使用；应用设置与 Content 下载缓存由 Host/Composition 在 Session 之外处理。
+- `session` 声明平台无关的 Gameplay Scope 激活端口：预编译路径的默认实现直接返回已激活；HybridCLR 路径由 `LumioGame` Release Composition 用 `hybridclr-adapter` 的公开能力实现并注入，不新增模块间源码依赖边。
 
 ## 8. 模块目录
 
@@ -182,11 +185,15 @@ all applicable modules -> generated Server/Runtime/Game contracts
 
 - 公共架构第 3.2 节定义的连接、协商、同步、Active、Resync、Reconnect、Close 和 Fault 状态迁移。
 - Session 级取消、超时、资源释放，以及供 Host 调用的 Tick 驱动入口。
-- Handshake 完成、FullSnapshot 应用、进入 Active、Gap/Resync、断线重连的编排顺序。
+- Handshake 完成、Gameplay Scope 激活、FullSnapshot 应用、进入 Active、Gap/Resync、断线重连的编排顺序。
+- Gameplay Scope 激活端口的声明与调用时机；预编译路径的默认实现直接返回已激活。
+- Active 消息门：调用生成的 Protocol/Permission Validator 校验 SessionId、GameReleaseId、MessageId、Role、Claims 和 Connection Generation。
+- 权威更新事务的编排：提交 Staged Plan、发起单一 Runtime 事务、成功后的元数据推进与 Ack 发送顺序。
+- Session 级 Runtime Handle（ReplicaWorld/VoxelReplicaWorld）的创建与逆序销毁；Config staging/activation 的请求时机。
 - `SessionId + ProductId + GameReleaseId` 关联和 Session 级 Capability 快照。
 - 输入缓冲、Replica 更新、Prediction 校正和 Presentation 输出之间的调用顺序。
 
-**不拥有：** Wall Clock、Socket、协议字段、Replica Storage、Prediction History 内部结构、Unity 生命周期或 Server Session。
+**不拥有：** Wall Clock、Socket、协议字段、Replica Storage、Prediction History 内部结构、Validator 规则内容、Runtime 事务机制、Unity 生命周期或 Server Session。
 
 ### 8.2 `connection`
 
@@ -222,9 +229,9 @@ all applicable modules -> generated Server/Runtime/Game contracts
 - FullSnapshot、Delta、Mapping Apply、Baseline ACK、Revision、Sequence、Gap 和 Resync 信号。
 - `NetEntityId` 到 `LocalEntityId` 的客户端映射、Tombstone 和 provisional ID 重映射。
 - 未知 Baseline、旧 Revision、Mapping Hash 不符和迟到 Delta 的拒绝语义。
-- Replica Apply 的原子提交边界。
+- 权威更新的校验与 Staged Authority Plan 构造；共同事务提交成功后的 Baseline/Revision 推进与 Ack 生成。
 
-**不拥有：** Server 权威状态、Game Component Schema、Runtime ECS Storage 实现、Prediction History 或表现对象。
+**不拥有：** Server 权威状态、Game Component Schema、Runtime ECS Storage 实现、Prediction History、事务提交本身（由 Runtime 事务完成）或表现对象。
 
 ### 8.5 `prediction`
 
@@ -232,9 +239,9 @@ all applicable modules -> generated Server/Runtime/Game contracts
 
 **拥有：**
 
-- `ClientCommandSeq`、`PredictionKey`、命令历史和 PredictionFrame 生命周期。
-- Confirmation/Correction 的接收与校正请求。
-- 历史窗口、过期策略、重放顺序和表现差异输出。
+- 在命令被 `session` 接纳进入预测/发送流程时唯一分配的 `ClientCommandSeq` 与 `PredictionKey`，以及命令历史和 PredictionFrame 生命周期。
+- Confirmation/Correction 的接收与校正请求；恢复与重放只在 Runtime 权威更新事务内执行，Confirmed Point 在事务提交成功后推进。
+- 历史窗口、过期策略和重放顺序；Presentation Diff 由 Runtime 事务生成，本模块只转发。
 - ECS、GAS、Voxel Overlay 作为同一确认/回滚单元的客户端协调入口。
 
 **不拥有：** Runtime 的状态机制、Replica Delta 解码、平台输入事件或最终权威结果。
@@ -245,11 +252,12 @@ all applicable modules -> generated Server/Runtime/Game contracts
 
 **拥有：**
 
-- 输入采样时间语义、归一化、排序、去抖、命令序列和有界缓冲。
+- 输入采样时间语义、归一化、排序、去抖、`InputSampleSeq` 采样序列和有界缓冲。
+- 输出未编号的候选命令；`ClientCommandSeq` 由 `prediction` 在接纳时分配，被拒绝或丢弃的样本不消耗序号。
 - Resync/Reconnect 期间的默认缓冲上限与丢弃诊断。
 - Host 输入端口和可回放 Command Stream 出口。
 
-**不拥有：** Unity Input 类型、具体游戏操作映射、Gameplay Command Schema 或预测状态。
+**不拥有：** Unity Input 类型、具体游戏操作映射、Gameplay Command Schema、最终命令序号 `ClientCommandSeq` 或预测状态。
 
 ### 8.7 `persistence`
 
@@ -259,6 +267,7 @@ all applicable modules -> generated Server/Runtime/Game contracts
 
 - 版本化客户端设置、缓存索引、原子替换、Hash/Checksum 和损坏回退。
 - 可移植 Save Adapter、最近有效 Checkpoint 和本地容量策略。
+- 向 `session` 提供已验证 Config/Content Artifact 与 Checkpoint 的窄读取端口；staging/activation 时机归 `session`，Tick Barrier 切换归 Runtime。
 - 文件系统、平台 Key/Value Store 或宿主提供的 Storage Port 适配。
 
 **不拥有：** Server WAL、权威 Snapshot、跨 World Txn Journal、Game Migrator 业务规则或 Secret 明文存储。
@@ -323,7 +332,7 @@ all applicable modules -> generated Server/Runtime/Game contracts
 ## 状态
 
 - 阶段：未实现 | 实施中 | 已交付
-- 架构基线：`LGE-V1.0-2026-08-27`
+- 架构基线：`LGE-V1.1-2026-08-27`
 - 公共契约来源：链接到架构镜像对应章节，不复制 Schema
 
 ## 责任
@@ -407,41 +416,52 @@ README 不应包含：
 Unity Adapter / Bot
   -> session.Connect
   -> connection 建立传输并启动有界队列
-  -> handshake 校验 Release/Manifest/Schema/ABI/Capability
-  -> replica 应用 FullSnapshot 并生成 BaselineAck
-  -> session 进入 Active
+  -> handshake 校验 Release/Manifest/Schema/ABI/Capability 并产出准入 Claims
+  -> session 通过注入的激活端口激活精确 Gameplay Scope
+     （预编译路径直接返回已激活；HybridCLR 路径校验、加载并激活精确 Release Artifact）
+  -> session 绑定生成 Contract/Mapping，经 persistence 窄端口取已验证 Artifact 并请求 Config staging
+  -> session 请求 Runtime 创建 Session 级 Replica Handle
+  -> replica 校验 FullSnapshot 并构造 Staged Plan，经 Runtime 事务原子提交
+  -> session 发送 BaselineAck 并进入 Active
   -> input/prediction 开始提交可预测命令
 ```
 
-任何一步失败都由拥有该判断的模块产生分类结果，由 `session` 决定 Session 状态迁移；模块不得直接修改其他模块状态。
+任何一步失败都由拥有该判断的模块产生分类结果，由 `session` 决定 Session 状态迁移；模块不得直接修改其他模块状态。激活失败不得进入 `Synchronizing`；外部 Composition 不得在 `session` 之外推进启动状态。一个 Session 的 Gameplay Scope 固定，Session 内不得跨 Release 替换。
 
 ### 10.2 权威更新与预测校正
 
 ```text
-connection 收包
-  -> replica 校验 Baseline/Revision/Sequence
-  -> session 请求 Runtime 恢复最近 Confirmed PredictionFrame
-  -> Runtime 原子应用 ECS/GAS/Voxel 权威结果
-  -> prediction 删除已确认命令并原序重放未确认命令
-  -> session 发布 Presentation Diff
+connection 完成帧/通道校验并产出不可变 Envelope
+  -> session 执行 Active 消息门
+     （SessionId/GameReleaseId/MessageId/Role/Claims/Connection Generation）
+  -> replica 校验 Baseline/Revision/Sequence/Mapping/Tombstone 并构造 Staged Authority Plan
+  -> session 发起单一 Runtime 权威更新事务：
+       恢复最近 Confirmed PredictionFrame
+       原子应用 ECS/GAS/Voxel 权威结果
+       应用确认/拒绝并删除已确认命令
+       原序重放未确认命令
+       生成平台无关 Presentation Diff
+       全部成功才提交；任一步失败不产生可见状态
+  -> 提交成功后：replica 推进 Baseline/Revision，prediction 推进 Confirmed Point/History
+  -> session 发送 Ack 并转发 Presentation Diff
   -> unity-adapter 或 bot 消费表现结果
 ```
 
-`replica` 不直接操作表现对象，`prediction` 不自行实现 Runtime 回滚，Host Adapter 不读取内部 Replica Storage。
+`replica` 不直接操作表现对象，`prediction` 不自行实现 Runtime 回滚，Host Adapter 不读取内部 Replica Storage。不允许 `replica` 先提交、`prediction` 后补偿；FullSnapshot、Delta 与 Resync 使用同一事务边界。Presentation Diff 由 Runtime 事务生成，`session` 只排序、关联 Session 生命周期并转发，`replica`、`prediction` 和 Host Adapter 不生产第二套表现真相。
 
 ### 10.3 Gap、Resync 与重连
 
 ```text
 replica 检测 Gap/未知 Baseline/Revision 冲突
-  -> session 进入 Resyncing
+  -> session 进入 Resyncing（同一连接与准入内，不重新 handshake）
   -> input 按 Host Profile 有界缓冲
-  -> connection 获取同步流；仅在重连或发布身份需重验时重新 handshake
-  -> replica 应用 FullSnapshot 或合法 ResyncPatch
-  -> prediction 丢弃或重基历史并给出诊断
+  -> replica 校验新 FullSnapshot 或合法 ResyncPatch 并构造 Staged Plan（新 Baseline Generation）
+  -> prediction 暂存历史重基或清空计划并给出诊断
+  -> 经同一 Runtime 事务原子生效：切换 Baseline Generation，丢弃旧代次消息
   -> session 返回 Active
 ```
 
-传输断开时由 `connection` 报告事实，是否重试以及 Session 如何迁移到 `Reconnecting` 由 `session` 决定。
+传输断开时由 `connection` 报告事实，是否重试以及 Session 如何迁移到 `Reconnecting` 由 `session` 决定。重连建立新连接代次后，必须重新完成通道认证与 Handshake Attempt；公共契约显式支持 Session Resume Token 前，不得复用旧连接的认证状态。
 
 ## 11. 文档与实现同步规则
 
@@ -457,8 +477,60 @@ replica 检测 Gap/未知 Baseline/Revision 冲突
 当前已经落地：
 
 - ADR 0001 记录 11 个能力模块、`session` 所有权和依赖原则。
+- ADR 0002 冻结权威更新事务边界、Gameplay Scope 激活门、消息校验所有权、可变状态所有权和生成契约工程层级；校验矩阵与状态表见第 13 节。
 - `modules/<name>/README.md` 已覆盖全部 11 个首批模块。
 - 根 README 已作为模块索引，Repository Policy 已建立模块文档检查。
 - 每个模块 README 已写明责任、非责任、输入输出、依赖、线程、失败、可观测性和验证面。
 
-开始建立实现工程或写源码前，仍必须固定 .NET SDK/语言版本、formatter、analyzer、Unity/HybridCLR 兼容矩阵和可复现验证命令，并把第 7 节依赖 DAG 映射为可由 CI 校验的项目引用图。首次实现应另写实施计划，不在本文中混入任务状态或源码占位。
+开始建立实现工程或写源码前，仍必须固定 .NET SDK/语言版本、formatter、analyzer、Unity/HybridCLR 兼容矩阵和可复现验证命令，并把第 7 节依赖 DAG 映射为可由 CI 校验的项目引用图。第 14 节所列上游契约确认同属实现前置；确认前不得按现有文档自行设计替代 API。首次实现应另写实施计划，不在本文中混入任务状态或源码占位。
+
+## 13. 校验与可变状态所有权
+
+本节是 ADR 0002 第 3、4 条的展开，是模块 README 相关表述的唯一汇总处。
+
+### 13.1 消息校验所有权矩阵
+
+| 验证类型 | 唯一所有者 |
+| --- | --- |
+| Endpoint 格式、Socket/IPC 建立、TLS/IPC 对端身份、Channel Binding | `connection` |
+| Frame 长度、完整性、分片、连接序号、连接级反重放窗口 | `connection` |
+| 登录/Session 准入、权限 Claims、Release/Schema/ABI/Protocol/Capability 协商 | `handshake` |
+| Active Envelope 的 SessionId、GameReleaseId、MessageId、Role、Claims、Connection Generation | `session`（调用生成的 Protocol/Permission Validator） |
+| Snapshot/Delta 的 Baseline、Revision、Sequence、Mapping、Tombstone | `replica` |
+| Confirmation/Correction 的预测语义 | `prediction` |
+
+LocalEmbedded 与 Remote 走完全相同的矩阵。重连（新连接代次）必须重做通道认证与 Handshake；Resync 在同一连接与准入内进行，不重新握手。
+
+### 13.2 可变状态所有权表
+
+每类可变状态回答创建、修改、快照/证据、销毁与失败恢复所有者：
+
+| 状态 | 创建 | 修改 | 快照/证据 | 销毁 | 失败恢复 |
+| --- | --- | --- | --- | --- | --- |
+| ClientReplicaSession 状态机 | `session` | `session`（Owner Thread） | 状态迁移事件 | `session` | 唯一终态、幂等迁移 |
+| Connection Generation 与 ingress/egress 队列 | `connection` | `connection` | 统计快照 | `connection`（执行 `session` 命令） | 分类上报，`session` 决定迁移 |
+| Negotiation Result 与准入 Claims | `handshake` | 不可变 | Failure Bundle | Session Close 或重握手时失效 | 重新 Handshake |
+| ReplicaWorld/VoxelReplicaWorld Runtime Handle | `session` 请求 Runtime 创建 | Storage 归 Runtime | Runtime Snapshot 机制 | `session` 逆序销毁 | 销毁失败进入 Faulted |
+| Baseline/Revision/Mapping/Entity Map/Tombstone | `replica` | `replica`（仅事务提交后推进） | Apply 证据、State Hash | 随 Replica Context | Resync 换新 Baseline Generation |
+| InputSampleSeq 与 Sample Queue | `input` | `input` | Command Stream 记录 | `input` | 采样源 Generation 隔离 |
+| ClientCommandSeq/PredictionKey | `prediction`（接纳时分配） | `prediction` | Replay 证据 | 随 Prediction Context | 拒绝/丢弃不消耗序号 |
+| Prediction History/Confirmed Point | `prediction` | `prediction`（仅事务提交后推进） | Replay、回滚统计 | 随 Session | Resync 重基或清空 |
+| Config/Content Artifact 与缓存 | `persistence` | `persistence` | Hash/Checksum、损坏证据 | 容量策略淘汰 | 回退最近有效 Checkpoint |
+| Staged/Active Config Snapshot | Runtime Config Port | 不可变，Tick Barrier 原子切换 | ConfigRevision | Runtime | 激活失败保留旧 Snapshot；staging 请求时机归 `session` |
+| Gameplay Scope | `hybridclr-adapter` 或预编译默认实现 | 不可变 Handle，按 Generation 切换 | 校验/加载证据 | Adapter 卸载 | 激活失败回滚旧 Scope 或要求重启；Session 内固定 |
+| Presentation Diff | Runtime 事务生成 | 不可变 | Replay 关联 | 消费后丢弃 | 不回写任何状态 |
+| Command Stream/Replay Artifact | `input`/`prediction` 生产 | 追加式 | `observability` 存储与导出 | 轮转/保留策略 | 不作为状态真相 |
+| Observability EventSeq 与 Sink Queue | `observability` | `observability` | 自观测计数器 | `observability` | 按类别背压策略 |
+
+## 14. 待上游契约确认
+
+以下契约属于公共架构源或 Runtime，本仓不得自行定义。确认前按 ADR 0002 的内部角色约束执行；答案落地后同步本文与模块 README，与 ADR 0002 冲突时新增 ADR 取代对应条款。
+
+1. LumioGameRuntime 是否发布单一的客户端权威更新事务 API；若只有独立 Restore/Apply/Replay API，必须先在架构源补齐事务契约。
+2. Active 消息的 Protocol/Permission Validator 是否由架构源生成，及其校验字段集合（Session、Release、Role、Claims、MessageId、Generation、反重放状态）。
+3. Generated Contract/Mapping Artifact 由哪个仓库与工具链发布，是否零依赖于 LumioClient 与 LumioGame 实现。
+4. GameRuntime Config Port 是否已定义 typed materialization、staging、ConfigRevision 与 Tick Barrier 激活。
+5. ClientReplicaSession 的 Runtime Handle 是单一 Handle 还是 ReplicaWorld/VoxelReplicaWorld 两个独立 Handle；直接影响销毁顺序、Snapshot 与事务边界。
+6. 重连是否提供安全的 Session Resume Token 契约；提供前一律重做通道认证与 Handshake。
+7. HybridCLR Gameplay Scope 是否允许在 Active Session 内替换；当前按固定 Release 处理。
+8. Replay/Command Stream 的规范格式与持久化责任归 Runtime、Architecture Tooling 还是 Client Observability。

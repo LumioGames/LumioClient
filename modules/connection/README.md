@@ -6,8 +6,8 @@
 
 - 阶段：未实现
 - 优先级：P0
-- 架构基线：`LGE-V1.0-2026-08-27`
-- 公共契约来源：[`Wire 与 Transport`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)、[`Host Profile、平台与能力`](../../docs/architecture/LumioGameEngine_Architecture_v1.0.md)
+- 架构基线：`LGE-V1.1-2026-08-27`
+- 公共契约来源：[`Wire 与 Transport`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#73-wire-与-transport)、[`Host Profile、平台与能力`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#10-host-profile平台与能力)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任
@@ -15,13 +15,14 @@
 - 解析和校验 Endpoint，建立、监测并关闭 Remote、LocalSplitProcess 或 LocalEmbedded 通道。
 - 提供统一的 Transport Adapter，使 Session 不依赖具体 Socket、IPC 或内存通道 API。
 - 管理网络线程与 Client Owner Thread 之间的有界 ingress/egress 队列。
-- 承载 Envelope 长度、序号、完整性、分片、重传、反重放和 Transport ACK 机制。
+- 承载 Envelope 长度、序号、完整性、分片、重传、连接级反重放和 Transport ACK 机制；通道认证与 Channel Binding 属于本层。
 - 提供超时、断开检测、退避机制及 Fault Decorator 的延迟、抖动、丢包、乱序、重复和 QueueFull 注入点。
 - 把连接事实和分类后的 Transport 错误上报给 `session`，不自行决定 Session 状态。
 
 ## 明确不负责什么
 
 - 不判断 Release、Manifest、Schema、ABI、Capability 或权限是否允许进入 Session。
+- 不执行 Active 消息的业务权限校验；该门由 `session` 调用生成的 Protocol/Permission Validator 完成，校验矩阵见设计文档第 13 节。
 - 不生成或消费 BaselineAck，不验证 Snapshot/Delta Revision，也不维护 Prediction History。
 - 不定义 Envelope、MessageId 或认证协议的公共 Schema。
 - 不拥有自动重连策略；它只执行 `session` 发出的连接或重连命令。

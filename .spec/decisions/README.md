@@ -29,3 +29,4 @@
 | 编号 | 决策 | 状态 |
 |------|------|------|
 | [`0001`](0001-capability-modules-and-session-orchestration.md) | 按能力模块组织客户端并由 session 统一编排 | 生效 |
+| [`0002`](0002-cross-module-gates-and-state-ownership.md) | 冻结跨模块提交点、启动门与可变状态所有权 | 生效 |
