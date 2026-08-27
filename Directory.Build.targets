@@ -1,4 +1,7 @@
 <Project>
+  <PropertyGroup Condition="'$(LumioProduction)' == 'false'">
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
   <ItemGroup Condition="'$(LumioProduction)' != 'false'">
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers">
       <PrivateAssets>all</PrivateAssets>
