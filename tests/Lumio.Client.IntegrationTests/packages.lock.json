@@ -165,6 +165,20 @@
           "Lumio.Client.Session": "[1.0.0, )"
         }
       },
+      "lumio.client.bot.host": {
+        "type": "Project",
+        "dependencies": {
+          "Lumio.Client.Bot": "[1.0.0, )",
+          "Lumio.Client.Connection": "[1.0.0, )",
+          "Lumio.Client.Handshake": "[1.0.0, )",
+          "Lumio.Client.Input": "[1.0.0, )",
+          "Lumio.Client.Observability": "[1.0.0, )",
+          "Lumio.Client.Persistence": "[1.0.0, )",
+          "Lumio.Client.Prediction": "[1.0.0, )",
+          "Lumio.Client.Replica": "[1.0.0, )",
+          "Lumio.Client.Session": "[1.0.0, )"
+        }
+      },
       "lumio.client.connection": {
         "type": "Project",
         "dependencies": {

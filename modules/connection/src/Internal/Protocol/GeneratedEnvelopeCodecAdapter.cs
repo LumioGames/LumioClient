@@ -6,39 +6,37 @@ namespace Lumio.Client.Connection
     {
         private readonly bool _requireBytes = true;
 
+        public int EncodeCalls { get; private set; }
+
+        public int DecodeCalls { get; private set; }
+
         public bool TryEncode(in EncodedFrame frame, out ReadOnlyMemory<byte> bytes)
         {
-            if (!_requireBytes)
+            bytes = default;
+            if (!_requireBytes || frame.Bytes.IsEmpty)
             {
-                bytes = default;
                 return false;
             }
 
-            if (frame.Bytes.IsEmpty)
-            {
-                bytes = default;
-                return false;
-            }
-
-            bytes = frame.Bytes;
+            byte[] copy = new byte[frame.Bytes.Length];
+            frame.Bytes.Span.CopyTo(copy);
+            bytes = copy;
+            EncodeCalls++;
             return true;
         }
 
         public bool TryDecode(ReadOnlyMemory<byte> bytes, out EncodedFrame frame)
         {
-            if (!_requireBytes)
+            frame = default;
+            if (!_requireBytes || bytes.IsEmpty)
             {
-                frame = default;
                 return false;
             }
 
-            if (bytes.IsEmpty)
-            {
-                frame = default;
-                return false;
-            }
-
-            frame = new EncodedFrame(bytes);
+            byte[] copy = new byte[bytes.Length];
+            bytes.Span.CopyTo(copy);
+            frame = new EncodedFrame(copy);
+            DecodeCalls++;
             return true;
         }
     }

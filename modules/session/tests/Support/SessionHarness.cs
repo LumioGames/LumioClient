@@ -23,11 +23,16 @@ internal static class SessionTestBytes
 internal sealed class SessionHarness
 {
     public SessionHarness(bool runtimeCommitted)
+        : this(runtimeCommitted, false)
+    {
+    }
+
+    public SessionHarness(bool runtimeCommitted, bool indeterminate)
     {
         Connections = new CapturingConnectionFactory();
         Scope = new ImmediateGameplayScopeActivator();
         Presentation = new NullPresentationSink();
-        Runtime = new RecordingRuntime(runtimeCommitted);
+        Runtime = new RecordingRuntime(runtimeCommitted, indeterminate);
         Ingress = new InputSampleIngress(16);
         Commands = new InputCommandSource(Ingress, new PassThroughMapper());
         var options = new ClientEventPipelineOptions(8, 4, TimeSpan.FromSeconds(1));
@@ -159,10 +164,17 @@ internal sealed class SessionHarness
 internal sealed class RecordingRuntime : IClientRuntimePort
 {
     private readonly bool _committed;
+    private readonly bool _indeterminate;
 
     public RecordingRuntime(bool committed)
+        : this(committed, false)
+    {
+    }
+
+    public RecordingRuntime(bool committed, bool indeterminate)
     {
         _committed = committed;
+        _indeterminate = indeterminate;
     }
 
     public int AuthorityCalls { get; private set; }
@@ -171,13 +183,27 @@ internal sealed class RecordingRuntime : IClientRuntimePort
 
     public ValueTask<RuntimeTransactionOutcome> ApplyAuthoritativeTransaction(in RuntimeTransactionRequest request, CancellationToken cancellationToken)
     {
+        _ = request;
+        cancellationToken.ThrowIfCancellationRequested();
         AuthorityCalls++;
+        if (_indeterminate)
+        {
+            return new ValueTask<RuntimeTransactionOutcome>(RuntimeTransactionOutcome.IndeterminateOutcome());
+        }
+
         return new ValueTask<RuntimeTransactionOutcome>(new RuntimeTransactionOutcome(_committed));
     }
 
     public ValueTask<RuntimeTransactionOutcome> ApplyLocalPrediction(in RuntimeTransactionRequest request, CancellationToken cancellationToken)
     {
+        _ = request;
+        cancellationToken.ThrowIfCancellationRequested();
         LocalCalls++;
+        if (_indeterminate)
+        {
+            return new ValueTask<RuntimeTransactionOutcome>(RuntimeTransactionOutcome.IndeterminateOutcome());
+        }
+
         return new ValueTask<RuntimeTransactionOutcome>(new RuntimeTransactionOutcome(_committed));
     }
 }

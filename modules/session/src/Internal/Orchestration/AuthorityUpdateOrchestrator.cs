@@ -21,11 +21,13 @@ namespace Lumio.Client.Session
             ulong sequence,
             out bool baselineAck,
             out bool presented,
-            out bool committed)
+            out bool committed,
+            out bool indeterminate)
         {
             baselineAck = false;
             presented = false;
             committed = false;
+            indeterminate = false;
             if (!_owned)
             {
                 return false;
@@ -63,6 +65,18 @@ namespace Lumio.Client.Session
 
             var pending = runtime.ApplyAuthoritativeTransaction(new RuntimeTransactionRequest(generation, replicaPlan), CancellationToken.None);
             RuntimeTransactionOutcome outcome = pending.IsCompleted ? pending.Result : new RuntimeTransactionOutcome(false);
+            if (outcome.Indeterminate)
+            {
+                indeterminate = true;
+                ReplicaCommittedMetadata frozen;
+                replica.ObserveRuntimeOutcome(replicaHandle, ReplicaRuntimeOutcome.IndeterminateOutcome(replicaPlan), out frozen);
+                prediction.ObserveRuntimeOutcome(
+                    predictionStage,
+                    new AuthorityRuntimeOutcome(PredictionOutcomeKind.Indeterminate, predictionStage.Id, predictionStage.Generation));
+                bundle.Clear();
+                return false;
+            }
+
             ReplicaRuntimeOutcome replicaOutcome = outcome.Committed
                 ? ReplicaRuntimeOutcome.CommittedOutcome()
                 : ReplicaRuntimeOutcome.AbortedOutcome();
@@ -83,7 +97,6 @@ namespace Lumio.Client.Session
             }
 
             committed = true;
-            baselineAck = true;
             presented = presentation.TryWrite(replicaPlan, generation).Accepted;
             bundle.Clear();
             return true;

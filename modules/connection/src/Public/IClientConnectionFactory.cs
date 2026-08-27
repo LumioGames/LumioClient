@@ -21,10 +21,23 @@ namespace Lumio.Client.Connection
     {
         private readonly object _gate = new object();
         private readonly ConnectionStateMachine _machine;
+        private readonly LocalEmbeddedTransport _transport;
+        private readonly ConnectionSendQueue _sendQueue;
+        private readonly ReplayWindow _inboundReplay = new ReplayWindow();
+        private readonly FaultDecoratingTransport _faults = new FaultDecoratingTransport(new PassThroughFaultPolicy());
+        private ulong _inboundSequence;
 
         public OwnerConnection(ConnectionGeneration generation, int eventCapacity)
         {
-            _machine = new ConnectionStateMachine(generation, eventCapacity);
+            int capacity = Math.Max(eventCapacity, 1);
+            _machine = new ConnectionStateMachine(generation, Math.Max(capacity, 8));
+            _transport = new LocalEmbeddedTransport(capacity);
+            _sendQueue = new ConnectionSendQueue(capacity);
+        }
+
+        internal LocalEmbeddedTransport Transport
+        {
+            get { return _transport; }
         }
 
         public ConnectionGeneration Generation
@@ -44,7 +57,19 @@ namespace Lumio.Client.Connection
         {
             lock (_gate)
             {
-                return _machine.TrySend(in frame);
+                ConnectionSendResult allowed = _machine.TrySend(in frame);
+                if (!allowed.Accepted)
+                {
+                    return allowed;
+                }
+
+                if (!_sendQueue.TryEnqueue(in frame))
+                {
+                    return new ConnectionSendResult(false);
+                }
+
+                FlushSendQueue();
+                return new ConnectionSendResult(true);
             }
         }
 
@@ -52,6 +77,7 @@ namespace Lumio.Client.Connection
         {
             lock (_gate)
             {
+                PumpInbound();
                 return _machine.Drain(destination);
             }
         }
@@ -80,20 +106,60 @@ namespace Lumio.Client.Connection
             }
         }
 
-        internal bool DeliverInbound(in EncodedFrame frame)
-        {
-            lock (_gate)
-            {
-                return _machine.TryDeliverInbound(in frame);
-            }
-        }
-
         internal bool DeliverDisconnect()
         {
             lock (_gate)
             {
                 return _machine.TryDeliverDisconnect();
             }
+        }
+
+        private void FlushSendQueue()
+        {
+            while (_sendQueue.TryPeek(out EncodedFrame next))
+            {
+                TransportFaultAction action = _faults.Next(0);
+                if (action == TransportFaultAction.Drop)
+                {
+                    _sendQueue.TryDequeue(out _);
+                    continue;
+                }
+
+                if (!_transport.TrySendClient(in next))
+                {
+                    return;
+                }
+
+                _sendQueue.TryDequeue(out _);
+                if (action == TransportFaultAction.Duplicate)
+                {
+                    _transport.TrySendClient(in next);
+                }
+            }
+        }
+
+        private void PumpInbound()
+        {
+            EncodedFrame frame;
+            while (_transport.TryReceiveClient(out frame))
+            {
+                _inboundSequence++;
+                if (!_inboundReplay.Accept(_inboundSequence))
+                {
+                    continue;
+                }
+
+                _machine.TryDeliverInbound(in frame);
+            }
+        }
+    }
+
+    internal sealed class PassThroughFaultPolicy : ITransportFaultPolicy
+    {
+        public TransportFaultAction Decide(in TransportFaultContext context)
+        {
+            _ = context;
+            return TransportFaultAction.Pass;
         }
     }
 }

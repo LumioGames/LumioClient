@@ -11,12 +11,19 @@ namespace Lumio.Client.Bot
         private readonly IClientSession _session;
         private readonly IBotScenarioDriver _driver;
         private readonly IInputSampleIngress _ingress;
+        private readonly IBotTickHook _hook;
 
         public HeadlessBotHost(IClientSession session, IBotScenarioDriver driver, IInputSampleIngress ingress)
+            : this(session, driver, ingress, new NullTickHook())
+        {
+        }
+
+        public HeadlessBotHost(IClientSession session, IBotScenarioDriver driver, IInputSampleIngress ingress, IBotTickHook hook)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _driver = driver ?? throw new ArgumentNullException(nameof(driver));
             _ingress = ingress ?? throw new ArgumentNullException(nameof(ingress));
+            _hook = hook ?? new NullTickHook();
         }
 
         public async Task<int> RunAsync(BotRunRequest request, CancellationToken cancellationToken)
@@ -26,6 +33,8 @@ namespace Lumio.Client.Bot
             for (int i = 0; i < request.Ticks; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                _hook.BeforeTick(i);
+
                 int n = _driver.FillSamples(new BotDriverContext(i), samples);
                 for (int s = 0; s < n; s++)
                 {
@@ -50,6 +59,14 @@ namespace Lumio.Client.Bot
         Task<int> IHeadlessBotHost.RunAsync(in BotRunRequest request, CancellationToken cancellationToken)
         {
             return RunAsync(request, cancellationToken);
+        }
+
+        private sealed class NullTickHook : IBotTickHook
+        {
+            public void BeforeTick(int tick)
+            {
+                _ = tick;
+            }
         }
     }
 }

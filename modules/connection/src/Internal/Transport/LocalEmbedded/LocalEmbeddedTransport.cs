@@ -17,6 +17,16 @@ namespace Lumio.Client.Connection
             get { return _pair; }
         }
 
+        public int EncodeCalls
+        {
+            get { return _codec.EncodeCalls; }
+        }
+
+        public int DecodeCalls
+        {
+            get { return _codec.DecodeCalls; }
+        }
+
         public bool TrySendClient(in EncodedFrame frame)
         {
             if (!_codec.TryEncode(in frame, out ReadOnlyMemory<byte> bytes))
@@ -31,7 +41,28 @@ namespace Lumio.Client.Connection
         {
             if (!_pair.Server.TryReceive(out ReadOnlyMemory<byte> bytes))
             {
-                frame = default;
+                frame = default(EncodedFrame);
+                return false;
+            }
+
+            return _codec.TryDecode(bytes, out frame);
+        }
+
+        public bool TrySendServer(in EncodedFrame frame)
+        {
+            if (!_codec.TryEncode(in frame, out ReadOnlyMemory<byte> bytes))
+            {
+                return false;
+            }
+
+            return _pair.Server.TrySend(bytes);
+        }
+
+        public bool TryReceiveClient(out EncodedFrame frame)
+        {
+            if (!_pair.Client.TryReceive(out ReadOnlyMemory<byte> bytes))
+            {
+                frame = default(EncodedFrame);
                 return false;
             }
 

@@ -9,9 +9,24 @@ namespace Lumio.Client.Connection
             _client = client;
         }
 
+        public int EncodeCalls
+        {
+            get { return _client.Transport.EncodeCalls; }
+        }
+
+        public int DecodeCalls
+        {
+            get { return _client.Transport.DecodeCalls; }
+        }
+
         public bool TryDeliverToClient(in EncodedFrame frame)
         {
-            return _client.DeliverInbound(in frame);
+            return _client.Transport.TrySendServer(in frame);
+        }
+
+        public bool TryReceiveFromClient(out EncodedFrame frame)
+        {
+            return _client.Transport.TryReceiveServer(out frame);
         }
 
         public bool TryDisconnectClient()

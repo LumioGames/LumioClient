@@ -22,10 +22,19 @@ public sealed class AuthorityTransactionFaultMatrixTests
     [Fact]
     public void IndeterminateNeverAcksOrPresents()
     {
-        var abort = new SessionHarness(false);
-        abort.HappyPathToActive();
-        Assert.False(abort.Session.GetSnapshot().BaselineAckSent);
-        Assert.False(abort.Session.GetSnapshot().PresentationWritten);
+        var harness = new SessionHarness(true, true);
+        harness.Connect();
+        harness.Tick();
+        harness.Deliver(SessionTestBytes.Hello);
+        harness.Tick();
+        harness.Deliver(SessionTestBytes.Snapshot);
+        harness.Tick();
+        ClientSessionSnapshot snap = harness.Session.GetSnapshot();
+        Assert.Equal(ClientSessionState.Faulted, snap.State);
+        Assert.False(snap.RuntimeCommitted);
+        Assert.False(snap.BaselineAckSent);
+        Assert.False(snap.PresentationWritten);
+        Assert.False(harness.Connections.Loopback.TryReceiveFromClient(out _));
     }
 
     [Fact]

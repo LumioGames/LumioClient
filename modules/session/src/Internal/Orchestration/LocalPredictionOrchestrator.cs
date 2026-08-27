@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Lumio.Client.Connection;
 using Lumio.Client.Input;
 using Lumio.Client.Prediction;
 
@@ -13,6 +14,7 @@ namespace Lumio.Client.Session
             IInputCommandSource commands,
             IClientPrediction prediction,
             IClientRuntimePort runtime,
+            IClientConnection connection,
             ulong generation)
         {
             if (!_owned)
@@ -45,6 +47,10 @@ namespace Lumio.Client.Session
                         stage,
                         new LocalPredictionOutcome(PredictionOutcomeKind.Committed, stage.Id, stage.Generation),
                         out command);
+                    if (connection != null)
+                    {
+                        connection.TrySend(new EncodedFrame(plan.OpaqueBytes));
+                    }
                 }
                 else
                 {

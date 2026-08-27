@@ -35,5 +35,6 @@
     <ProjectReference Include="..\..\modules\unity-adapter\src\Lumio.Client.UnityAdapter.csproj" />
     <ProjectReference Include="..\..\modules\hybridclr-adapter\src\Lumio.Client.HybridClrAdapter.csproj" />
     <ProjectReference Include="..\..\modules\bot\src\Lumio.Client.Bot.csproj" />
+    <ProjectReference Include="..\..\modules\bot\host\Lumio.Client.Bot.Host.csproj" />
   </ItemGroup>
 </Project>

@@ -25,4 +25,17 @@ public sealed class ConnectionQueueFullTests
         Assert.True(queue.TryEnqueue(new EncodedFrame(new byte[] { 1 })));
         Assert.False(queue.TryEnqueue(new EncodedFrame(new byte[] { 2 })));
     }
+
+    [Fact]
+    public void FactoryPath_EgressFull_DoesNotOverwriteFirstFrame()
+    {
+        var factory = new ClientConnectionFactory();
+        ClientConnectionCreateResult created = factory.Create(new ClientConnectionCreateRequest(1, 1), out IClientConnection connection);
+        connection.Start();
+        Assert.True(connection.TrySend(new EncodedFrame(new byte[] { 1 })).Accepted);
+        connection.TrySend(new EncodedFrame(new byte[] { 2 }));
+        connection.TrySend(new EncodedFrame(new byte[] { 3 }));
+        Assert.True(created.Loopback.TryReceiveFromClient(out EncodedFrame first));
+        Assert.Equal(1, first.Bytes.Span[0]);
+    }
 }

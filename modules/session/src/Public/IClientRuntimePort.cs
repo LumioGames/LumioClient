@@ -20,11 +20,32 @@ namespace Lumio.Client.Session
     public readonly struct RuntimeTransactionOutcome
     {
         public RuntimeTransactionOutcome(bool committed)
+            : this(committed, false)
         {
-            Committed = committed;
+        }
+
+        public RuntimeTransactionOutcome(bool committed, bool indeterminate)
+        {
+            if (indeterminate)
+            {
+                Committed = false;
+                Indeterminate = true;
+            }
+            else
+            {
+                Committed = committed;
+                Indeterminate = false;
+            }
         }
 
         public bool Committed { get; }
+
+        public bool Indeterminate { get; }
+
+        public static RuntimeTransactionOutcome IndeterminateOutcome()
+        {
+            return new RuntimeTransactionOutcome(false, true);
+        }
     }
 
     public interface IClientRuntimePort

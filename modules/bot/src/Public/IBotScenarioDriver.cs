@@ -16,4 +16,9 @@ namespace Lumio.Client.Bot
     {
         int FillSamples(in BotDriverContext context, System.Span<RawInputSample> destination);
     }
+
+    public interface IBotTickHook
+    {
+        void BeforeTick(int tick);
+    }
 }

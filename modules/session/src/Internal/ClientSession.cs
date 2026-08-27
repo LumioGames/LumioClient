@@ -101,7 +101,12 @@ namespace Lumio.Client.Session
 
                     if (_machine.State == ClientSessionState.Active)
                     {
-                        _localPrediction.Tick(_dependencies.Commands, _prediction, _dependencies.Runtime, _machine.Generation);
+                        _localPrediction.Tick(
+                            _dependencies.Commands,
+                            _prediction,
+                            _dependencies.Runtime,
+                            _connection,
+                            _machine.Generation);
                     }
                 }
 
@@ -281,6 +286,7 @@ namespace Lumio.Client.Session
             bool committed;
             bool ack;
             bool presented;
+            bool indeterminate;
             resyncHint = _authority.TryCommit(
                 _replica,
                 _prediction,
@@ -293,11 +299,22 @@ namespace Lumio.Client.Session
                 sequence,
                 out ack,
                 out presented,
-                out committed);
+                out committed,
+                out indeterminate);
+            _ = ack;
+            if (indeterminate)
+            {
+                _terminal.Freeze();
+                _machine.TryEnter(ClientSessionState.Faulted);
+                ReleaseAll();
+                return;
+            }
+
             if (committed)
             {
                 _runtimeCommitted = true;
-                _baselineAck = ack;
+                ConnectionSendResult sent = _connection.TrySend(new EncodedFrame(SessionWireBytes.BaselineAck));
+                _baselineAck = sent.Accepted;
                 _presented = presented;
                 _machine.TryEnter(ClientSessionState.Active);
                 return;
@@ -333,6 +350,7 @@ namespace Lumio.Client.Session
                 _handles,
                 _scopeGate,
                 _dependencies.Scope,
+                _dependencies.Input,
                 _handshakeOrch.Handshake,
                 _connection,
                 _replica,

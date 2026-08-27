@@ -18,6 +18,7 @@ public sealed class SessionCloseReleaseTests
         Assert.Contains("connection", order);
         Assert.True(Array.IndexOf(order, "input") < Array.IndexOf(order, "connection"));
         Assert.True(Array.IndexOf(order, "prediction") < Array.IndexOf(order, "handshake"));
+        Assert.True(harness.Scope.ReleaseCalls >= 1);
     }
 
     [Fact]
