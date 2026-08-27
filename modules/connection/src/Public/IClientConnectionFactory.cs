@@ -57,10 +57,9 @@ namespace Lumio.Client.Connection
         {
             lock (_gate)
             {
-                ConnectionSendResult allowed = _machine.TrySend(in frame);
-                if (!allowed.Accepted)
+                if (!_machine.CanSend(in frame))
                 {
-                    return allowed;
+                    return new ConnectionSendResult(false);
                 }
 
                 if (!_sendQueue.TryEnqueue(in frame))

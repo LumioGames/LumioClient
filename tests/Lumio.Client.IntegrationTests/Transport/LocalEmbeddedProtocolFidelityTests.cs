@@ -15,11 +15,18 @@ public sealed class LocalEmbeddedProtocolFidelityTests
 
         byte[] outbound = { 7, 8, 9 };
         byte[] inbound = { 0x10, 0x32, 0x54 };
+        int encodeBeforeSend = trace.EncodeCalls;
+        int decodeBeforeSend = trace.DecodeCalls;
         Assert.True(connection.TrySend(new EncodedFrame(outbound)).Accepted);
+        Assert.True(trace.EncodeCalls > encodeBeforeSend);
         Assert.True(created.Loopback.TryReceiveFromClient(out EncodedFrame sent));
+        Assert.True(trace.DecodeCalls > decodeBeforeSend);
         Assert.True(sent.Bytes.Span.SequenceEqual(outbound));
 
+        int encodeBeforeInject = trace.EncodeCalls;
+        int decodeBeforeDrain = trace.DecodeCalls;
         Assert.True(created.Loopback.TryDeliverToClient(new EncodedFrame(inbound)));
+        Assert.True(trace.EncodeCalls > encodeBeforeInject);
         var buffer = new ConnectionEvent[8];
         int n = connection.DrainEvents(buffer);
         ConnectionEvent? received = null;
@@ -34,6 +41,7 @@ public sealed class LocalEmbeddedProtocolFidelityTests
 
         Assert.True(received.HasValue);
         Assert.True(received.Value.Frame.Bytes.Span.SequenceEqual(inbound));
+        Assert.True(trace.DecodeCalls > decodeBeforeDrain);
         Assert.True(trace.EncodeCalls >= 2);
         Assert.True(trace.DecodeCalls >= 2);
         foreach (var type in typeof(IClientConnection).Assembly.GetExportedTypes())

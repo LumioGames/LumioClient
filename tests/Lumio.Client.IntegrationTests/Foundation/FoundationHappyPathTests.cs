@@ -19,10 +19,10 @@ public sealed class FoundationHappyPathTests
         Assert.True(active.PresentationWritten);
         Assert.True(active.ScopeActivated);
         Assert.True(harness.Runtime.AuthorityCalls >= 1);
-        Assert.True(harness.Connections.Loopback.EncodeCalls >= 1);
-        Assert.True(harness.Connections.Loopback.DecodeCalls >= 1);
+        Assert.True(harness.Connections.Loopback.EncodeCalls >= 3);
+        Assert.True(harness.Connections.Loopback.DecodeCalls >= 2);
         Assert.True(harness.Connections.Loopback.TryReceiveFromClient(out EncodedFrame ack));
-        Assert.False(ack.Bytes.IsEmpty);
+        Assert.Equal(new byte[] { 0xAC, 0x4B, 0x01 }, ack.Bytes.ToArray());
 
         harness.Deliver(FoundationTestBytes.Gap);
         harness.Tick();

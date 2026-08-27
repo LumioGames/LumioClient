@@ -43,14 +43,9 @@ namespace Lumio.Client.Connection
             return new ConnectionCommandResult(true);
         }
 
-        public ConnectionSendResult TrySend(in EncodedFrame frame)
+        public bool CanSend(in EncodedFrame frame)
         {
-            if (_terminal || !_started || frame.Bytes.IsEmpty)
-            {
-                return new ConnectionSendResult(false);
-            }
-
-            return new ConnectionSendResult(true);
+            return _started && !_terminal && !frame.Bytes.IsEmpty;
         }
 
         public bool TryClose(ConnectionCloseReason reason)

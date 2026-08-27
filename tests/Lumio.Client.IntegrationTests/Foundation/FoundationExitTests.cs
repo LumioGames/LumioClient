@@ -14,4 +14,14 @@ public sealed class FoundationExitTests
             CancellationToken.None);
         Assert.Equal(0, code);
     }
+
+    [Fact]
+    [Trait("Category", "Foundation")]
+    public async Task FoundationCli_UnknownTransport_IsNonZero()
+    {
+        int code = await FoundationHostCommand.RunAsync(
+            new[] { "foundation", "--transport", "remote" },
+            CancellationToken.None);
+        Assert.Equal(3, code);
+    }
 }
