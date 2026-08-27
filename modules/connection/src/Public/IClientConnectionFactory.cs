@@ -30,8 +30,8 @@ namespace Lumio.Client.Connection
         public OwnerConnection(ConnectionGeneration generation, int eventCapacity)
         {
             int capacity = Math.Max(eventCapacity, 1);
-            _machine = new ConnectionStateMachine(generation, Math.Max(capacity, 8));
-            _transport = new LocalEmbeddedTransport(capacity);
+            _machine = new ConnectionStateMachine(generation, capacity);
+            _transport = new LocalEmbeddedTransport(Math.Max(capacity, 4));
             _sendQueue = new ConnectionSendQueue(capacity);
         }
 
@@ -62,13 +62,14 @@ namespace Lumio.Client.Connection
                     return new ConnectionSendResult(false);
                 }
 
-                if (!_sendQueue.TryEnqueue(in frame))
+                FlushSendQueue();
+                if (_transport.TrySendClient(in frame))
                 {
-                    return new ConnectionSendResult(false);
+                    return new ConnectionSendResult(true);
                 }
 
-                FlushSendQueue();
-                return new ConnectionSendResult(true);
+                _sendQueue.TryEnqueue(in frame);
+                return new ConnectionSendResult(false);
             }
         }
 
@@ -76,6 +77,7 @@ namespace Lumio.Client.Connection
         {
             lock (_gate)
             {
+                FlushSendQueue();
                 PumpInbound();
                 return _machine.Drain(destination);
             }
@@ -148,7 +150,10 @@ namespace Lumio.Client.Connection
                     continue;
                 }
 
-                _machine.TryDeliverInbound(in frame);
+                if (!_machine.TryDeliverInbound(in frame))
+                {
+                    return;
+                }
             }
         }
     }

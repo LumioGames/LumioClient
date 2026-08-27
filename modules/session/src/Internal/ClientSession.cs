@@ -63,6 +63,11 @@ namespace Lumio.Client.Session
                     return new SessionCommandResult(false);
                 }
 
+                if (_machine.State == ClientSessionState.Closed)
+                {
+                    _terminal.Unfreeze();
+                }
+
                 return StartGeneration(request.Generation == 0 ? 1UL : request.Generation);
             }
         }

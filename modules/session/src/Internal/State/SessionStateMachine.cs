@@ -13,7 +13,14 @@ namespace Lumio.Client.Session
 
         public bool TryEnter(ClientSessionState next)
         {
-            if (IsTerminal && next != State)
+            if (State == ClientSessionState.Faulted)
+            {
+                return false;
+            }
+
+            if (State == ClientSessionState.Closed
+                && next != ClientSessionState.Connecting
+                && next != ClientSessionState.Closed)
             {
                 return false;
             }

@@ -25,6 +25,11 @@ namespace Lumio.Client.Connection
             return true;
         }
 
+        public int Count
+        {
+            get { return _count; }
+        }
+
         public int Drain(Span<ConnectionEvent> destination)
         {
             int n = Math.Min(destination.Length, _count);

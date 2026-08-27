@@ -8,5 +8,10 @@ namespace Lumio.Client.Session
         {
             Frozen = true;
         }
+
+        public void Unfreeze()
+        {
+            Frozen = false;
+        }
     }
 }

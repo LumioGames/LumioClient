@@ -41,6 +41,23 @@ public sealed class SessionRaceTests
     }
 
     [Fact]
+    public void Closed_ThenConnect_EntersNegotiatingAndTicks()
+    {
+        var harness = new SessionHarness(true);
+        harness.HappyPathToActive();
+        harness.Session.RequestClose(new SessionCloseRequest(false));
+        Assert.Equal(ClientSessionState.Closed, harness.Session.GetSnapshot().State);
+        Assert.True(harness.Session.RequestConnect(new SessionConnectRequest(2), CancellationToken.None).Succeeded);
+        Assert.Equal(ClientSessionState.Negotiating, harness.Session.GetSnapshot().State);
+        Assert.Equal(2UL, harness.Session.GetSnapshot().Generation);
+        harness.Tick();
+        Assert.Equal(ClientSessionState.Negotiating, harness.Session.GetSnapshot().State);
+        harness.Deliver(SessionTestBytes.Hello);
+        harness.Tick();
+        Assert.Equal(ClientSessionState.Synchronizing, harness.Session.GetSnapshot().State);
+    }
+
+    [Fact]
     public void LateCompletionCannotRecreateReleasedResource()
     {
         var harness = new SessionHarness(true);

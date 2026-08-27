@@ -5,15 +5,14 @@ namespace Lumio.Client.Connection
     internal sealed class ConnectionStateMachine
     {
         private readonly ConnectionGeneration _generation;
-        private readonly ConnectionEvent[] _events;
-        private int _count;
+        private readonly ConnectionEventQueue _events;
         private bool _started;
         private bool _terminal;
 
         public ConnectionStateMachine(ConnectionGeneration generation, int eventCapacity)
         {
             _generation = generation;
-            _events = new ConnectionEvent[Math.Max(eventCapacity, 4)];
+            _events = new ConnectionEventQueue(eventCapacity);
         }
 
         public ConnectionGeneration Generation
@@ -28,7 +27,7 @@ namespace Lumio.Client.Connection
 
         public int EventCount
         {
-            get { return _count; }
+            get { return _events.Count; }
         }
 
         public ConnectionCommandResult Start()
@@ -39,7 +38,7 @@ namespace Lumio.Client.Connection
             }
 
             _started = true;
-            Enqueue(new ConnectionEvent(ConnectionEventKind.Started, _generation, false));
+            _events.TryEnqueue(new ConnectionEvent(ConnectionEventKind.Started, _generation, false));
             return new ConnectionCommandResult(true);
         }
 
@@ -61,7 +60,7 @@ namespace Lumio.Client.Connection
                     ? ConnectionEventKind.Faulted
                     : ConnectionEventKind.Closed;
             _terminal = true;
-            Enqueue(new ConnectionEvent(kind, _generation, true));
+            _events.TryEnqueue(new ConnectionEvent(kind, _generation, true));
             return true;
         }
 
@@ -82,8 +81,7 @@ namespace Lumio.Client.Connection
                 return false;
             }
 
-            Enqueue(new ConnectionEvent(ConnectionEventKind.FrameReceived, _generation, false, frame));
-            return true;
+            return _events.TryEnqueue(new ConnectionEvent(ConnectionEventKind.FrameReceived, _generation, false, frame));
         }
 
         public bool TryDeliverDisconnect()
@@ -93,30 +91,7 @@ namespace Lumio.Client.Connection
 
         public int Drain(Span<ConnectionEvent> destination)
         {
-            int n = Math.Min(destination.Length, _count);
-            for (int i = 0; i < n; i++)
-            {
-                destination[i] = _events[i];
-            }
-
-            if (n < _count)
-            {
-                Array.Copy(_events, n, _events, 0, _count - n);
-            }
-
-            _count -= n;
-            return n;
-        }
-
-        private void Enqueue(ConnectionEvent evt)
-        {
-            if (_count == _events.Length)
-            {
-                return;
-            }
-
-            _events[_count] = evt;
-            _count++;
+            return _events.Drain(destination);
         }
     }
 }
