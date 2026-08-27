@@ -4,9 +4,9 @@
 
 本文审阅 `LumioClient` 设计框架，并定义进入实现前采用的模块边界与模块文档规范。它只定义本仓内部的组织方式，不新增公共协议、Schema、Envelope、ABI、错误码或跨仓依赖。
 
-- 架构基线：`LGE-V1.1-2026-08-27`
+- 架构基线：`LGE-V1.2-2026-08-27`
 - 公共架构唯一来源：`LumioGameEngineArchitecture`
-- 本仓只读镜像：[`../architecture/LumioGameEngine_Architecture_v1.1.md`](../architecture/LumioGameEngine_Architecture_v1.1.md)
+- 本仓只读镜像：[`../architecture/LumioGameEngine_Architecture_v1.2.md`](../architecture/LumioGameEngine_Architecture_v1.2.md)
 - 本仓边界入口：[`../../README.md`](../../README.md)
 - 本文状态：已确认并完成模块文档落地；实现工程与业务代码尚未创建
 
@@ -332,7 +332,7 @@ all applicable modules -> 纯生成 Contract Artifact（层级见下方补充规
 ## 状态
 
 - 阶段：未实现 | 实施中 | 已交付
-- 架构基线：`LGE-V1.1-2026-08-27`
+- 架构基线：`LGE-V1.2-2026-08-27`
 - 公共契约来源：链接到架构镜像对应章节，不复制 Schema
 
 ## 责任

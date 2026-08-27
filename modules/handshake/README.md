@@ -6,8 +6,8 @@
 
 - 阶段：未实现
 - 优先级：P0
-- 架构基线：`LGE-V1.1-2026-08-27`
-- 公共契约来源：[`Replication、Prediction 与网络`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#7-replicationprediction-与网络)、[`Release、版本共存与更新`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#13-release版本共存与更新)
+- 架构基线：`LGE-V1.2-2026-08-27`
+- 公共契约来源：[`Replication、Prediction 与网络`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#7-replicationprediction-与网络)、[`Release、版本共存与更新`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#13-release版本共存与更新)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任

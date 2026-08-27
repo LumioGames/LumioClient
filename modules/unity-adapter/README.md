@@ -6,8 +6,8 @@
 
 - 阶段：未实现
 - 优先级：P1
-- 架构基线：`LGE-V1.1-2026-08-27`
-- 公共契约来源：[`Host Profile、平台与能力`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#10-host-profile平台与能力)、[`Native、Managed 与 CoreEngine`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#8-nativemanaged-与-coreengine)
+- 架构基线：`LGE-V1.2-2026-08-27`
+- 公共契约来源：[`Host Profile、平台与能力`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#10-host-profile平台与能力)、[`Native、Managed 与 CoreEngine`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#8-nativemanaged-与-coreengine)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任

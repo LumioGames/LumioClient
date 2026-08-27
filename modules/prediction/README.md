@@ -6,8 +6,8 @@
 
 - 阶段：未实现
 - 优先级：P0
-- 架构基线：`LGE-V1.1-2026-08-27`
-- 公共契约来源：[`PredictionFrame`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#72-predictionframe)、[`GAS Framework`](../../docs/architecture/LumioGameEngine_Architecture_v1.1.md#9-gas-framework)
+- 架构基线：`LGE-V1.2-2026-08-27`
+- 公共契约来源：[`PredictionFrame 与客户端权威更新事务`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#72-predictionframe-与客户端权威更新事务)、[`GAS Framework`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#9-gas-framework)
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任

@@ -9,7 +9,7 @@
 
 `LumioClient` 是通用客户端连接、Replica/Prediction Host、Unity/HybridCLR 适配和 Headless Bot 基础设施，主要边界是 C#/.NET 客户端运行与平台适配。
 
-- 当前架构基线是 `LGE-V1.1-2026-08-27`；公共架构与契约的唯一来源是 `LumioGameEngineArchitecture`，本仓只保存只读镜像。
+- 当前架构基线是 `LGE-V1.2-2026-08-27`；公共架构与契约的唯一来源是 `LumioGameEngineArchitecture`，本仓只保存只读镜像。
 - 本仓拥有连接、握手、ClientReplicaSession、ReplicaWorld、输入与表现适配，不拥有 Server 权威状态或 Voxel 内部数据。
 - 开工前先读 [`repository-architecture.md`](knowledge/standards/repository-architecture.md)；详细模块边界见根 [`README.md`](../README.md)。
 
