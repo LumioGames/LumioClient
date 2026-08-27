@@ -1,110 +1,156 @@
 # LumioClient
 
-> 通用客户端连接、Replica/Prediction 运行时与 Host Adapter。
+> 通用客户端连接、Replica/Prediction Host、Unity/HybridCLR 适配和 Headless Bot 基础设施。
 
-## 定位
+## 架构基线
 
-`LumioClient` 是可复用的客户端基础设施，不是具体游戏产品。它维护客户端自己的 ECS `ReplicaWorld` 和 VoxelReplicaWorld，消费 Server Snapshot/Delta，执行预测、校正和回滚，并把输入与表现边界提供给 `LumioGame`。
+- Baseline：`LGE-V1.0-2026-08-27`
+- 唯一架构源：`LumioGameEngineArchitecture`
+- 本地镜像：[`docs/architecture/LumioGameEngine_Architecture_v1.0.md`](docs/architecture/LumioGameEngine_Architecture_v1.0.md)
 
-Server 和 Client 始终各自创建本地 Entity；跨端关联使用 `NetEntityId`，每个 ECS World 内部使用独立的 `LocalEntityId`。两端 Component 可以完全不同。
+`LumioClient` 是客户端基础设施，不是具体游戏产品。它拥有连接、握手、ClientReplicaSession、ReplicaWorld、输入和平台适配；Runtime 提供复制/回滚机制，Game 提供具体 Component/Mapping/表现内容。Server 与 Client 永远拥有独立的本地状态。
 
-总架构基线见 [`docs/architecture/LumioGameEngine_Architecture_v0.3.md`](docs/architecture/LumioGameEngine_Architecture_v0.3.md)。
+## Architecture Gate
 
-客户端 Host/平台实现可按目标平台选择技术，但 Client Gameplay、Replica/Prediction Processor 和热更程序集统一使用 C#；Native 高性能能力只通过 `LumioCoreEngine` Rust 产物接入。
+Handshake、Replication/Prediction、Mapping、Entity、Capability 和 Failure Bundle Schema 只维护在 `LumioGameEngineArchitecture`。连接或 Replica 行为变更必须补齐正向/失败 Fixture，并在架构源执行 `python3 tools/lumio_contract.py validate`；客户端不得通过本地快捷路径绕过 Envelope、权限或 Baseline 校验。
 
 ## 拥有的状态与生命周期
 
-- Connection、握手、断线、重连、Ack、缺口检测、Resync 和 Endpoint 状态。
-- Client `ReplicaWorld` 的 Local Entity/Component、Snapshot Revision、预测命令缓冲、确认、校正和回滚状态。
-- Client VoxelReplicaWorld 的 Chunk、Revision、Streaming 和预测视图（权威修改仍来自 Server）。
-- 输入采样、表现输出、Headless Bot 控制和渲染/平台 Adapter 生命周期。
+- Connection、Handshake、Endpoint、断线、重连、Transport ACK、Baseline ACK、Gap 和 Resync。
+- Client `ReplicaWorld`、`VoxelReplicaWorld`、LocalEntityId、Snapshot/Revision 和预测历史。
+- Input Sample、ClientCommandSeq、PredictionKey、Confirmation、Correction 和 Presentation 输出。
+- Unity Host、HybridCLR Capability、Renderer/Input Adapter 和 Headless Bot 生命周期。
+
+Client 不拥有 Server 权威状态、Server Wall Clock、Release Pool 或 Voxel 内部数据；每个 `ClientReplicaSession` 通过 `SessionId + ProductId + GameReleaseId` 与服务器逻辑关联。
+
+## 子模块
+
+| 子模块 | 责任 | 首批状态 |
+| --- | --- | --- |
+| `connection` | Socket/Transport Adapter、Endpoint、超时和重连 | P0 |
+| `handshake` | Release/Schema/ABI/Capability 校验 | P0 |
+| `replica` | Snapshot/Delta/Mapping Apply、Tombstone 和 Gap | P0 |
+| `prediction` | Input Buffer、PredictionFrame、确认/校正驱动 | P0 |
+| `input` | 平台输入采样和命令生成 | P1 |
+| `unity-adapter` | Unity Renderer/Host/Input 边界 | P1 |
+| `hybridclr-adapter` | Unity Client C# 热更加载与 Capability | P1 |
+| `persistence` | 客户端配置、缓存和可移植 Save Adapter | P1 |
+| `bot` | Headless Input/Presentation Adapter 和 Bot Driver | P1 |
+| `observability` | Client Log、Metrics、Trace、Replay 证据 | P1 |
 
 ## 职责
 
-- 连接公共 DS、玩家 DS、本机 DS，或在 LocalEmbedded 中连接 InMemoryTransport。
-- 解析并校验 RPC Envelope，应用 Snapshot/Delta、Revision、Ack、缺口和 Resync。
-- 提供 Prediction、Authority Confirmation、Correction、Rollback 和可回放 Command Stream。
-- 只加载 `LumioCoreEngine` 的统一 Native 平台包，并通过 Runtime Adapter 使用 Voxel 能力。
-- 创建 Client Role 的 ECS World，加载 Client Gameplay Assembly，驱动 Replica/Prediction Processor。
-- 为 Unity、自研 Renderer、移动端和 Headless Bot 提供输入、表现、平台和诊断边界。
+- 连接公共 DS、Player DS、Localhost DS 或 LocalEmbedded Transport。
+- 校验 Envelope、Schema、Release、权限和长度，应用 FullSnapshot/Delta/Ack/Resync。
+- 驱动 Runtime 的 PredictionFrame、Correction、Rollback 和未确认命令重放；不重新实现 Runtime 状态机制。
+- 创建 Client Role 的 ECS/Voxel Replica World，加载 Client Gameplay Assembly 和生成 Mapping。
+- 为 Unity、Desktop、iOS/Android、Headless Bot 提供 Input/Presentation/诊断适配。
+- 产出可回放 Command Stream、Client State Hash、网络指标和 Failure Bundle。
 
 ## 明确不负责什么
 
-- 不成为 Server 权威状态源，不信任客户端预测作为最终结果。
-- 不包含具体 UI、角色、关卡、技能、内容资产或商业配置。
-- 不保存服务器完整 ECS/Gameplay 权威副本，也不强制对端 Component 对称。
-- 不重新定义 Native ABI、Voxel ABI、RPC Envelope 或 Game Gameplay Schema。
-- 不把 Renderer、Unity 类型、DOM、平台 UI 或 Socket 实现反向污染 `LumioGameRuntime`。
-- 不依赖 `LumioGame` 源码；只加载其发布的 Client Gameplay Assembly 和内容包。
+- 不成为 Server 权威状态源，不把预测结果当最终结果。
+- 不定义 Native ABI、Voxel Schema、RPC Envelope 或 Game Gameplay Schema 的唯一来源。
+- 不保存服务器完整 ECS/Gameplay/Voxel 权威副本，不强制 Component 对称。
+- 不把 Unity 类型、DOM、平台 UI 或 Renderer 细节下沉到 GameRuntime。
+- 不直接加载第二套 NativeCore/VoxelEngine；只使用 CoreEngine 统一包。
 
-## 对外产物与契约
+## Client Session 状态机
 
-- `lumio-client` Headless/平台 Host、连接与 Replica API、Prediction/Correction API。
-- Client Host Adapter、Input/Presentation Channel、Bot Driver 和诊断接口。
-- `ClientHostManifest`：Core Engine、Runtime、网络协议、GameRelease、平台和 Artifact Hash。
+```text
+Disconnected -> Connecting -> Negotiating -> Synchronizing -> Active
+Active -> Resyncing -> Active
+Active/Resyncing -> Reconnecting -> Synchronizing
+Any state -> Closed / Faulted
+```
+
+进入 `Active` 前必须完成 Release/Manifest/Schema/ABI/Capability 校验和 FullSnapshot。Resync 期间继续采样输入的策略必须由 Host Profile 指定：默认缓冲并限制长度，超过窗口丢弃并产生诊断事件。
+
+## Replication 与 Prediction
+
+Transport ACK 与 Baseline ACK 分离。Delta 必须带 BaseSnapshot、From/To Revision、Sequence 和 Mapping Hash；未知 Baseline、Gap、旧 Revision、Tombstone 冲突或历史窗口不足直接请求 Full Resync。
+
+权威更新顺序由 Runtime 统一：验证 Baseline/Revision → 恢复最近 Confirmed PredictionFrame → 原子应用 ECS/GAS/Voxel 权威结果 → 删除已确认命令 → 原序重放未确认命令 → 生成表现差异。Client 只负责何时预测、何时请求校正和如何呈现。
+
+`NetEntityId` 为 128 位不透明逻辑身份；`LocalEntityId` 只在 Client World 有效。预测生成实体使用独立临时命名空间，确认包提供重映射；Destroy Tombstone 防止迟到 Delta 复活实体。
+
+## Transport 与 LocalEmbedded
+
+LocalEmbedded 使用与 DS 相同的 Schema、Serializer、Envelope、权限校验、大小限制、有界队列和 Tick 交付；可以绕过 Socket/TLS/OS 网络栈，但不能绕过业务协议。Fault Decorator 支持延迟、抖动、丢包、乱序、重复、断线、重连和 QueueFull。
+
+## Unity 与 HybridCLR
+
+所有 Unity Client（Desktop、iOS、Android）可将 HybridCLR 作为 Platform Capability 使用。稳定 Runtime/Host 与 Client Gameplay 的加载边界必须清晰，热更包需要签名、Hash、GameRelease、Schema、权限和资源预算校验。Native ABI、稳定 Runtime 或存档 Schema 的破坏性变化不能通过普通热更掩盖，必须走完整 Release/重启路径。
+
+Server 默认 CoreCLR；Server HybridCLR 仅作为后续可行性 Spike，不是 Client 的前置依赖。
+
+## 持久化、序列化与配置
+
+- Replica/Replay 使用生成的 Canonical Serializer；不以对象引用、内存地址或渲染状态作为真相。
+- 客户端缓存和本地 Save 采用版本化 Snapshot/Hash/Checksum；与 DS 同 Release 时使用可移植格式，跨版本走 Game Migrator。
+- 配置源在构建期编译为 typed table；每个 Tick 读取不可变配置快照，开发可热载，生产显式版本切换。
+
+## 日志与观测
+
+使用成熟 C# 日志框架和有界异步队列，输出 Diagnostic/Audit/Replay/Metric/Trace 事件；Error/Fatal 有应急落盘。事件至少带 `ProductId、GameReleaseId、SessionId、WorldId、TickId、SnapshotId、PredictionKey、TraceId`。网络队列和表现状态只进入诊断数据，不进入权威 Simulation Hash。
 
 ## Source / Compile-Time Dependencies
 
-- `LumioGameRuntime` 稳定 ECS/Replica/GAS 接口。
-- `LumioCoreEngine` 统一 Native 平台包和生成 Managed Contract；不直接引用 NativeCore/VoxelEngine 源码。
-- Server 公开的 RPC Envelope/Endpoint Contract；不引用 `LumioServer` 实现。
-- 平台 SDK、Headless Host 和经审核的客户端基础包。
+- `LumioGameRuntime` 稳定 ECS/Replica/GAS/Prediction 机制。
+- `LumioCoreEngine` 统一 Native 包和生成 Managed Contract；不直接引用 NativeCore/VoxelEngine 源码。
+- Server 公开的 Envelope/Endpoint/Handshake Contract；不引用 Server 实现。
+- Unity/HybridCLR/平台 SDK 和经过供应链审查的托管包，通过 Adapter 隔离。
 
 ## Generated Contract Dependencies
 
-消费 RPC Envelope、MessageId、Snapshot/Delta、NetEntity 映射、Component Schema、Voxel Port 和 Game Gameplay Contract 生成物。Client Component 由 `LumioGame` 提供，Replica Apply 只按 Mapping 写入本地 Component。
+消费 RPC Envelope、MessageId、Snapshot/Delta、Entity Mapping、Component Schema、Voxel Port 和 Game Gameplay Contract。Replica Apply 只能按生成 Mapping 写入本地 Component，不手写布局或 ID。
 
 ## Runtime Loading Relationships
 
 ```text
-LumioClient Host / LocalEmbedded ClientRoleHost
-  -> LumioCoreEngine (one unified native package)
-  -> LumioGameRuntime stable host
-  -> ClientGameplay.dll + generated contracts + Content
-  -> Client ReplicaWorld + VoxelReplicaWorld
+LumioClient Host / Unity Host / Headless Bot
+  -> CoreEngine Loader (one package)
+  -> stable GameRuntime
+  -> ClientGameplay.dll / HybridCLR module
+  -> ReplicaWorld + VoxelReplicaWorld
 ```
-
-LocalEmbedded 的 Client Role 与 Server Role 同进程但使用不同 ECS/实体/体素世界，通过 InMemoryTransport 经过完整消息边界。
 
 ## Release Composition Relationships
 
-客户端发行包由 `LumioGame` 组装：Client Host、CoreEngine 平台包、Runtime、Client Gameplay Assembly、生成契约、配置、内容和 Manifest。Client 必须与 DS 声明相同 `GameReleaseId`；不匹配时在握手阶段拒绝加入。
+`LumioGame` 组装 Client Host、CoreEngine、Runtime、Client Gameplay、Mapping、Config/Content 和 Manifest。客户端通过 Release Catalog/Handshake 路由到对应 Release Pool；版本不匹配时拒绝加入并显示稳定错误。
 
 ## Room Modes / Host Profiles
 
-| RoomMode | Host Profile | 客户端关系 |
-| --- | --- | --- |
-| `Online` | `PublicDedicatedServer` | 连接公共 DS。 |
-| `Online` | `PlayerHostedDedicatedServer` | 连接玩家启动的独立 DS。 |
-| `Online` | `LocalhostDedicatedServer` | 连接本机独立 DS。 |
-| `Singleplayer` | `LocalEmbedded` | 同进程 Client Role + Server Role + InMemoryTransport。 |
-
-移动端第一阶段支持 LocalEmbedded 和加入远程 DS；不负责启动 Player-hosted DS。Gameplay 不读取模式布尔值，只使用 Role/Capability/Port。
+支持 `PublicDedicatedServer`、`PlayerHostedDedicatedServer`、`LocalhostDedicatedServer`、`LocalEmbedded`、`PureHeadless`、`NativeHeadless`、`LocalSplitProcess`、`RemoteDS` 和 `MobileLocal`。Gameplay 只使用 Role/Capability/Port，不读取 Offline/Local 布尔值。
 
 ## Headless Test Surface
 
-- Replica Apply、Snapshot/Delta、Revision、Ack、缺口、Resync 和断线重连。
-- Prediction/Correction/Rollback、输入延迟、丢包/乱序/重复包和 State Hash。
-- Client VoxelReplicaWorld Streaming、Chunk Diff、表现输出和 Native Headless Smoke Test。
-- Bot Driver 在 `PureHeadless`、`LocalEmbedded`、`LocalSplitProcess`、`RemoteDS`、`MobileLocal` 运行同一 Scenario。
-- 记录 Command Stream、Snapshot、Metrics、网络 p95/p99、帧时间和内存。
+- Snapshot/Delta/Mapping、Tombstone、Revision、Ack、Gap、Resync、断线重连和 Release 拒绝。
+- Prediction/Correction/Rollback、输入延迟、丢包/乱序/重复和 Client State Hash。
+- LocalEmbedded 同 Codec/同权限/有界队列保真度；LocalSplitProcess 端口与进程隔离。
+- Unity/HybridCLR 设备 Smoke、AOT/包体/内存/启动时长和热更回滚。
+- Headless Bot 复用同一连接/Replica/Prediction API，替换 Input/Presentation Adapter。
+- Client 日志背压、缓存损坏、Save/Load、Failure Bundle 和 Replay 首差异。
 
 ## Version / Manifest
 
-- Client Host、网络协议、Runtime API、Core Engine ABI 和 Game Release 分别记录版本与 Hash。
-- Manifest 必须声明平台、Renderer Adapter、Generated Contract、GameReleaseId、内容 Hash 和能力矩阵。
-- 握手校验 Release/Schema/ABI/Capability；只允许明确兼容的 Server/Client 组合。
+`ClientHostManifest` 至少包含 Product/GameRelease、Platform、Renderer/HybridCLR Capability、Runtime API、Core ABI、Network/Replication Protocol、Generated Contract、Config/Content Hash、Signature 和 SBOM。握手精确校验，不做未经声明的跨 Release 推断。
+
+## 开源优先与供应链
+
+优先复用成熟连接、序列化、日志、指标、Unity/HybridCLR 和测试方案；所有依赖锁定版本/Commit、许可证、SBOM、漏洞、AOT、确定性和性能检查。默认优先宽松许可证，第三方类型不得穿过稳定接口。
 
 ## 开发规范
 
-- `NetEntityId` 用于跨端稳定关联，`LocalEntityId` 只在当前 ECS World 有效；禁止把网络 ID 当作数组索引。
-- Snapshot 只通过生成 Mapping 应用；预测修改必须可被权威 Revision 回滚。
-- 网络线程只写入队列，Replica/Gameplay Processor 在固定 Tick 阶段消费。
-- Headless 与渲染 Host 使用同一输入、Replica、Prediction API；表现层不可成为状态真相。
-- Core Engine 只通过统一包加载一次；平台差异封装在 Client Adapter。
+- 网络线程只入队；Replica/Prediction Processor 在 Runtime 固定 Phase 消费。
+- 表现层不能成为状态真相；所有预测必须有可回滚边界。
+- 不把 Server/Client World 合并以“优化”移动端资源。
+- 连接、重连、维护、更新和错误都必须写入可诊断事件。
 
-## 当前阶段任务
+## 当前阶段与开发节奏
 
-- 建立 Headless Client、InMemoryTransport、ReplicaWorld/预测回滚最小闭环。
-- 实现 CoreEngine 单包加载、Client Gameplay Assembly 校验和 DS 握手拒绝路径。
-- 建立 Bot/Replay/网络故障场景与移动端 Local/Remote DS 测试矩阵。
+1. **Architecture Gate**：冻结 Replication/Prediction/Resync、Client Session、Handshake 和 Platform Capability。
+2. **Foundation**：实现 Headless Connection、Replica Apply、Input Buffer、Local Transport 和 CoreEngine 单加载。
+3. **Vertical Slice**：接入不对称 Mapping、PredictionFrame、Replay、Save/Load、配置快照和日志证据。
+4. **Production Hardening**：LocalSplitProcess、RemoteDS、Unity/HybridCLR、断线重连、滚动 Release 和资源基线。
+5. **P2**：更深移动端优化、Server HybridCLR、Mod Client 能力和跨 Release Session 迁移。
