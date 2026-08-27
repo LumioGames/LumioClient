@@ -21,6 +21,12 @@ metadata:
 - 本仓不拥有 Server 权威状态、Server Wall Clock、Release Pool、Voxel 内部存储或第二套 NativeCore/VoxelEngine。
 - Server 与 Client 永远拥有独立本地状态；LocalEmbedded 也必须走完整 Schema、Envelope、权限、大小限制、有界队列和 Tick 交付路径。
 
+## 内部模块文档
+
+- 根 [`README.md`](../../../README.md) 是模块索引；每个 `modules/<name>/README.md` 是对应模块责任、依赖、失败和验证面的入口。
+- 内部模块结构与依赖规则见 [`模块化架构设计`](../../../docs/specs/2026-08-27-client-module-architecture-design.md)，决策依据见 [`ADR 0001`](../../decisions/0001-capability-modules-and-session-orchestration.md)。
+- 模块目录必须先有 README 再引入源码；模块所有权或依赖方向变化时，同一改动同步对应 README。
+
 ## Architecture Gate
 
 - 进入 `Active` 前必须完成 Release/Manifest/Schema/ABI/Capability 校验和 FullSnapshot；Gap、未知 Baseline 或 Revision 冲突触发明确 Resync。

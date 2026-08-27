@@ -25,18 +25,21 @@ Client 不拥有 Server 权威状态、Server Wall Clock、Release Pool 或 Voxe
 
 ## 子模块
 
-| 子模块 | 责任 | 首批状态 |
+每个模块的当前责任、明确非责任、依赖方向、失败语义和验证面以其目录内 README 为入口；模块化设计与统一 README 契约见 [`docs/specs/2026-08-27-client-module-architecture-design.md`](docs/specs/2026-08-27-client-module-architecture-design.md)。
+
+| 子模块 | 责任 | 优先级 |
 | --- | --- | --- |
-| `connection` | Socket/Transport Adapter、Endpoint、超时和重连 | P0 |
-| `handshake` | Release/Schema/ABI/Capability 校验 | P0 |
-| `replica` | Snapshot/Delta/Mapping Apply、Tombstone 和 Gap | P0 |
-| `prediction` | Input Buffer、PredictionFrame、确认/校正驱动 | P0 |
-| `input` | 平台输入采样和命令生成 | P1 |
-| `unity-adapter` | Unity Renderer/Host/Input 边界 | P1 |
-| `hybridclr-adapter` | Unity Client C# 热更加载与 Capability | P1 |
-| `persistence` | 客户端配置、缓存和可移植 Save Adapter | P1 |
-| `bot` | Headless Input/Presentation Adapter 和 Bot Driver | P1 |
-| `observability` | Client Log、Metrics、Trace、Replay 证据 | P1 |
+| [`session`](modules/session/README.md) | ClientReplicaSession 状态机与跨模块编排 | P0 |
+| [`connection`](modules/connection/README.md) | Transport Adapter、Endpoint、有界队列、超时和断线检测 | P0 |
+| [`handshake`](modules/handshake/README.md) | Release/Manifest/Schema/ABI/Capability 准入校验 | P0 |
+| [`replica`](modules/replica/README.md) | Snapshot/Delta/Mapping Apply、Tombstone、Gap 和 Resync | P0 |
+| [`prediction`](modules/prediction/README.md) | PredictionFrame、确认、校正、回滚与命令重放驱动 | P0 |
+| [`input`](modules/input/README.md) | 平台无关输入归一化、命令序列与有界缓冲 | P1 |
+| [`persistence`](modules/persistence/README.md) | 客户端设置、Config/Content 缓存和可移植 Save Adapter | P1 |
+| [`observability`](modules/observability/README.md) | Client Log、Metrics、Trace、Replay 与 Failure Bundle 出口 | P1 |
+| [`unity-adapter`](modules/unity-adapter/README.md) | Unity Host、Renderer 和平台 Input 边界 | P1 |
+| [`hybridclr-adapter`](modules/hybridclr-adapter/README.md) | Unity Client C# 热更加载与 Capability Provider | P1 |
+| [`bot`](modules/bot/README.md) | Headless Host、Input/Presentation Adapter 和 Bot Driver | P1 |
 
 ## 职责
 

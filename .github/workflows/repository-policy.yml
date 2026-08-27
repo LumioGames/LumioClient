@@ -37,3 +37,47 @@ jobs:
           grep -q '^## 当前阶段与开发节奏$' README.md
           test -s docs/architecture/.baseline.sha256
           sha256sum -c docs/architecture/.baseline.sha256
+      - name: Validate module documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          design="docs/specs/2026-08-27-client-module-architecture-design.md"
+          test -s "$design"
+          grep -q '^## 7\. 依赖图$' "$design"
+          grep -q '^## 9\. 模块 README 契约$' "$design"
+
+          modules=(
+            session
+            connection
+            handshake
+            replica
+            prediction
+            input
+            persistence
+            observability
+            unity-adapter
+            hybridclr-adapter
+            bot
+          )
+
+          module_count="$(find modules -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+          test "$module_count" -eq "${#modules[@]}"
+
+          for module in "${modules[@]}"; do
+            readme="modules/$module/README.md"
+            test -s "$readme"
+            grep -q "^# $module$" "$readme"
+            grep -q 'LGE-V1.0-2026-08-27' "$readme"
+            grep -q '^## 状态$' "$readme"
+            grep -q '^## 责任$' "$readme"
+            grep -q '^## 明确不负责什么$' "$readme"
+            grep -q '^## 公共入口与出口$' "$readme"
+            grep -q '^## 数据与控制流$' "$readme"
+            grep -q '^## 依赖$' "$readme"
+            grep -q '^## 生命周期与线程模型$' "$readme"
+            grep -q '^## 失败与恢复$' "$readme"
+            grep -q '^## 可观测性$' "$readme"
+            grep -q '^## 验证$' "$readme"
+            grep -q '^## 目录$' "$readme"
+            grep -Fq "(modules/$module/README.md)" README.md
+          done
