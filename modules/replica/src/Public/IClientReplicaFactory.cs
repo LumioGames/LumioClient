@@ -4,6 +4,8 @@ namespace Lumio.Client.Replica
 {
     public interface IClientReplicaFactory
     {
+        IClientReplica Create();
+
         IClientReplica Create(IReplicaMapper mapper);
     }
 

@@ -1,3 +1,5 @@
+using Lumio.Client.Session;
+
 namespace Lumio.Client.IntegrationTests.Fakes;
 
 public enum FakeRuntimeTransactionKind
@@ -35,7 +37,7 @@ public readonly struct FakeRuntimeTransactionOutcome
     public string Code { get; }
 }
 
-public sealed class FakeClientRuntimePort
+public sealed class FakeClientRuntimePort : IClientRuntimePort
 {
     private readonly List<FakeRuntimeTransactionRequest> _calls = new();
     private FakeRuntimeTransactionOutcome _next = new(true, "ok");
@@ -43,6 +45,8 @@ public sealed class FakeClientRuntimePort
     public IReadOnlyList<FakeRuntimeTransactionRequest> Calls => _calls;
 
     public int ApplyAuthoritativeTransactionCalls => _calls.Count(c => c.Kind == FakeRuntimeTransactionKind.Authoritative);
+
+    public int ApplyLocalPredictionCalls => _calls.Count(c => c.Kind == FakeRuntimeTransactionKind.LocalPrediction);
 
     public void InjectOutcome(FakeRuntimeTransactionOutcome outcome)
     {
@@ -53,5 +57,21 @@ public sealed class FakeClientRuntimePort
     {
         _calls.Add(request);
         return _next;
+    }
+
+    public ValueTask<RuntimeTransactionOutcome> ApplyAuthoritativeTransaction(in RuntimeTransactionRequest request, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        FakeRuntimeTransactionOutcome fake = ApplyAuthoritativeTransaction(
+            new FakeRuntimeTransactionRequest(FakeRuntimeTransactionKind.Authoritative, request.Generation, request.OpaquePlan));
+        return new ValueTask<RuntimeTransactionOutcome>(new RuntimeTransactionOutcome(fake.Committed));
+    }
+
+    public ValueTask<RuntimeTransactionOutcome> ApplyLocalPrediction(in RuntimeTransactionRequest request, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        FakeRuntimeTransactionOutcome fake = ApplyAuthoritativeTransaction(
+            new FakeRuntimeTransactionRequest(FakeRuntimeTransactionKind.LocalPrediction, request.Generation, request.OpaquePlan));
+        return new ValueTask<RuntimeTransactionOutcome>(new RuntimeTransactionOutcome(fake.Committed));
     }
 }

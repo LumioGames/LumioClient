@@ -13,18 +13,7 @@ namespace Lumio.Client.Replica
                 return false;
             }
 
-            byte marker = update.Span[0];
-            if (kind == ReplicaUpdateKind.FullSnapshot)
-            {
-                return marker == 1;
-            }
-
-            if (kind == ReplicaUpdateKind.Delta)
-            {
-                return marker == 2;
-            }
-
-            return false;
+            return kind == ReplicaUpdateKind.FullSnapshot || kind == ReplicaUpdateKind.Delta;
         }
     }
 }

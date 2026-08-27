@@ -32,5 +32,9 @@ namespace Lumio.Client.Session
         ValueTask<RuntimeTransactionOutcome> ApplyAuthoritativeTransaction(
             in RuntimeTransactionRequest request,
             CancellationToken cancellationToken);
+
+        ValueTask<RuntimeTransactionOutcome> ApplyLocalPrediction(
+            in RuntimeTransactionRequest request,
+            CancellationToken cancellationToken);
     }
 }

@@ -12,7 +12,8 @@ public sealed class PredictionGeneratedFixtureTests
         Assert.True(GeneratedPredictionAdapter.TryClassify(new byte[] { 2, 7 }, out PredictionUpdateKind correction));
         Assert.Equal(PredictionUpdateKind.Correction, correction);
         Assert.False(GeneratedPredictionAdapter.TryClassify(ReadOnlyMemory<byte>.Empty, out _));
-        Assert.False(GeneratedPredictionAdapter.TryClassify(new byte[] { 9 }, out _));
+        Assert.True(GeneratedPredictionAdapter.TryClassify(new byte[] { 9 }, out PredictionUpdateKind opaqueKind));
+        Assert.Equal(PredictionUpdateKind.Confirmation, opaqueKind);
 
         IClientPrediction prediction = new ClientPredictionFactory().Create(new PredictionCreateRequest(1UL, 8));
         var candidate = new PredictionCandidate(1UL, new byte[] { 4 });
@@ -23,9 +24,9 @@ public sealed class PredictionGeneratedFixtureTests
         PredictionSnapshot before = prediction.GetSnapshot();
 
         var authorityContext = new PredictionAuthorityContext(1UL);
-        var invalid = new AuthorityPredictionUpdate(new byte[] { 9 }, 1UL);
+        var empty = new AuthorityPredictionUpdate(ReadOnlyMemory<byte>.Empty, 1UL);
         PredictionAuthorityResult rejected = prediction.StageAuthority(
-            in invalid,
+            in empty,
             in authorityContext,
             out PredictionAuthorityStage rejectedStage,
             out PredictionReconcilePlan rejectedPlan);
@@ -33,6 +34,11 @@ public sealed class PredictionGeneratedFixtureTests
         Assert.Equal(0UL, rejectedStage.Id);
         Assert.True(rejectedPlan.OpaqueBytes.IsEmpty);
         Assert.Equal(before.HistoryCount, prediction.GetSnapshot().HistoryCount);
+
+        var opaque = new AuthorityPredictionUpdate(new byte[] { 9 }, 1UL);
+        Assert.Equal(
+            PredictionAuthorityStatus.Staged,
+            prediction.StageAuthority(in opaque, in authorityContext, out _, out _).Status);
 
         var confirmationUpdate = new AuthorityPredictionUpdate(new byte[] { 1 }, 1UL);
         Assert.Equal(

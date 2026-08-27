@@ -80,6 +80,22 @@ namespace Lumio.Client.Connection
             return true;
         }
 
+        public bool TryDeliverInbound(in EncodedFrame frame)
+        {
+            if (_terminal || !_started)
+            {
+                return false;
+            }
+
+            Enqueue(new ConnectionEvent(ConnectionEventKind.FrameReceived, _generation, false, frame));
+            return true;
+        }
+
+        public bool TryDeliverDisconnect()
+        {
+            return TryClose(ConnectionCloseReason.Disconnect);
+        }
+
         public int Drain(Span<ConnectionEvent> destination)
         {
             int n = Math.Min(destination.Length, _count);

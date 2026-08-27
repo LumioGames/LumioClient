@@ -4,11 +4,21 @@ namespace Lumio.Client.Handshake
 {
     internal sealed class GeneratedHandshakeAdapter
     {
-        private readonly bool _enabled = true;
+        private readonly IHandshakeFrameClassifier _classifier;
 
-        public bool IsHello(ReadOnlyMemory<byte> frame)
+        public GeneratedHandshakeAdapter(IHandshakeFrameClassifier classifier)
         {
-            return _enabled && !frame.IsEmpty && frame.Span[0] == 1;
+            _classifier = classifier ?? new UnpublishedHandshakeFrameClassifier();
+        }
+
+        public HandshakeOpaqueFrameRole Classify(ReadOnlyMemory<byte> frame)
+        {
+            if (frame.IsEmpty)
+            {
+                return HandshakeOpaqueFrameRole.Unclassified;
+            }
+
+            return _classifier.Classify(frame);
         }
     }
 }

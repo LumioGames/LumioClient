@@ -33,11 +33,18 @@ namespace Lumio.Client.Bot
                 }
 
                 _session.Tick(new ClientOwnerTick((ulong)i));
+                _ = _session.GetSnapshot();
                 await Task.Yield();
             }
 
             _session.RequestClose(new SessionCloseRequest(false));
-            return request.ExitCode;
+            ClientSessionState state = _session.GetSnapshot().State;
+            if (state == ClientSessionState.Faulted)
+            {
+                return 1;
+            }
+
+            return 0;
         }
 
         Task<int> IHeadlessBotHost.RunAsync(in BotRunRequest request, CancellationToken cancellationToken)

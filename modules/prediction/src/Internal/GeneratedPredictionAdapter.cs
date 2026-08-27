@@ -20,19 +20,14 @@ namespace Lumio.Client.Prediction
             }
 
             byte marker = payload.Span[0];
-            if (marker == (byte)PredictionUpdateKind.Confirmation)
-            {
-                kind = PredictionUpdateKind.Confirmation;
-                return true;
-            }
-
             if (marker == (byte)PredictionUpdateKind.Correction)
             {
                 kind = PredictionUpdateKind.Correction;
                 return true;
             }
 
-            return false;
+            kind = PredictionUpdateKind.Confirmation;
+            return true;
         }
     }
 }

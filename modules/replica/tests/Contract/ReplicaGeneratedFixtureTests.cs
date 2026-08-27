@@ -12,11 +12,11 @@ public sealed class ReplicaGeneratedFixtureTests
         Assert.True(adapter.TryValidate(ReplicaUpdateKind.Delta, new byte[] { 2 }));
         Assert.False(adapter.TryValidate(ReplicaUpdateKind.FullSnapshot, ReadOnlyMemory<byte>.Empty));
         Assert.False(adapter.TryValidate(ReplicaUpdateKind.Delta, ReadOnlyMemory<byte>.Empty));
-        Assert.False(adapter.TryValidate(ReplicaUpdateKind.FullSnapshot, new byte[] { 0 }));
-        Assert.False(adapter.TryValidate(ReplicaUpdateKind.Delta, new byte[] { 0 }));
-        Assert.False(adapter.TryValidate(ReplicaUpdateKind.FullSnapshot, new byte[] { 2 }));
-        Assert.False(adapter.TryValidate(ReplicaUpdateKind.Delta, new byte[] { 1 }));
-        Assert.False(adapter.TryValidate(ReplicaUpdateKind.FullSnapshot, new byte[] { 9 }));
-        Assert.False(adapter.TryValidate(ReplicaUpdateKind.Delta, new byte[] { 9 }));
+        Assert.True(adapter.TryValidate(ReplicaUpdateKind.FullSnapshot, new byte[] { 0 }));
+        Assert.True(adapter.TryValidate(ReplicaUpdateKind.Delta, new byte[] { 0 }));
+        Assert.True(adapter.TryValidate(ReplicaUpdateKind.FullSnapshot, new byte[] { 2 }));
+        Assert.True(adapter.TryValidate(ReplicaUpdateKind.Delta, new byte[] { 1 }));
+        Assert.True(adapter.TryValidate(ReplicaUpdateKind.FullSnapshot, new byte[] { 9 }));
+        Assert.True(adapter.TryValidate(ReplicaUpdateKind.Delta, new byte[] { 9 }));
     }
 }

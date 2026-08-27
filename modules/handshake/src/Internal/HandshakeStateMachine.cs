@@ -7,6 +7,7 @@ namespace Lumio.Client.Handshake
     internal sealed class HandshakeSession : IClientHandshake
     {
         private readonly IPlatformCapabilityProvider _capabilities;
+        private readonly GeneratedHandshakeAdapter _adapter;
         private readonly CapabilityCompletionQueue _completions = new CapabilityCompletionQueue();
         private HandshakeAttemptId _attempt;
         private ulong _generation;
@@ -17,8 +18,14 @@ namespace Lumio.Client.Handshake
         private bool _capabilityOk;
 
         public HandshakeSession(IPlatformCapabilityProvider capabilities)
+            : this(capabilities, new UnpublishedHandshakeFrameClassifier())
+        {
+        }
+
+        public HandshakeSession(IPlatformCapabilityProvider capabilities, IHandshakeFrameClassifier classifier)
         {
             _capabilities = capabilities ?? throw new ArgumentNullException(nameof(capabilities));
+            _adapter = new GeneratedHandshakeAdapter(classifier);
         }
 
         public HandshakeCommandResult Begin(in HandshakeBeginRequest request)
@@ -48,11 +55,22 @@ namespace Lumio.Client.Handshake
                 return new HandshakeCommandResult(false);
             }
 
-            if (frame.IsEmpty || frame.Span[0] != 1)
+            HandshakeOpaqueFrameRole role = _adapter.Classify(frame);
+            if (role == HandshakeOpaqueFrameRole.Unclassified)
+            {
+                return new HandshakeCommandResult(false);
+            }
+
+            if (role == HandshakeOpaqueFrameRole.HandshakeReject)
             {
                 _phase = HandshakePhase.Rejected;
                 _reject = HandshakeRejectReason.InvalidHello;
                 return new HandshakeCommandResult(true);
+            }
+
+            if (role != HandshakeOpaqueFrameRole.ServerHello)
+            {
+                return new HandshakeCommandResult(false);
             }
 
             _helloValid = true;

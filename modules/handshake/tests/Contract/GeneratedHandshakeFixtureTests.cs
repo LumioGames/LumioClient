@@ -7,10 +7,11 @@ public sealed class GeneratedHandshakeFixtureTests
     [Fact]
     public void ValidAndInvalidVectors()
     {
-        var adapter = new GeneratedHandshakeAdapter();
-        Assert.True(adapter.IsHello(new byte[] { 1 }));
-        Assert.False(adapter.IsHello(ReadOnlyMemory<byte>.Empty));
-        Assert.False(adapter.IsHello(new byte[] { 9 }));
+        var adapter = new GeneratedHandshakeAdapter(HandshakeTestFixtures.Classifier);
+        Assert.Equal(HandshakeOpaqueFrameRole.ServerHello, adapter.Classify(HandshakeTestFixtures.ServerHello));
+        Assert.Equal(HandshakeOpaqueFrameRole.Unclassified, adapter.Classify(ReadOnlyMemory<byte>.Empty));
+        Assert.Equal(HandshakeOpaqueFrameRole.Unclassified, adapter.Classify(new byte[] { 9 }));
+        Assert.Equal(HandshakeOpaqueFrameRole.Unclassified, new GeneratedHandshakeAdapter(new UnpublishedHandshakeFrameClassifier()).Classify(HandshakeTestFixtures.ServerHello));
     }
 }
 
@@ -21,12 +22,12 @@ public sealed class HandshakePhaseFixtureTests
     {
         var gate = new GeneratedHandshakeMessageGate();
         Assert.False(gate.Allows(HandshakePhase.Accepted, 1));
-        var handshake = new ClientHandshakeFactory().Create(new OkCap());
+        var handshake = new ClientHandshakeFactory().Create(new OkCap(), HandshakeTestFixtures.Classifier);
         handshake.Begin(new HandshakeBeginRequest(new HandshakeAttemptId(1), 1));
-        handshake.HandleFrame(new byte[] { 1 });
+        handshake.HandleFrame(HandshakeTestFixtures.ServerHello);
         handshake.Poll();
         var before = handshake.GetSnapshot();
-        handshake.HandleFrame(new byte[] { 1 });
+        handshake.HandleFrame(HandshakeTestFixtures.ServerHello);
         var after = handshake.GetSnapshot();
         Assert.Equal(before.Phase, after.Phase);
     }

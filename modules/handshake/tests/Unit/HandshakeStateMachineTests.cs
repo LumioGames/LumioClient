@@ -7,9 +7,9 @@ public sealed class HandshakeStateMachineTests
     [Fact]
     public void Accepted_RequiresCapabilityAndValidServerHello()
     {
-        var handshake = new ClientHandshakeFactory().Create(new FixedCapability(true));
+        var handshake = new ClientHandshakeFactory().Create(new FixedCapability(true), HandshakeTestFixtures.Classifier);
         handshake.Begin(new HandshakeBeginRequest(new HandshakeAttemptId(1), 1));
-        handshake.HandleFrame(new byte[] { 1 });
+        handshake.HandleFrame(HandshakeTestFixtures.ServerHello);
         var outcome = handshake.Poll();
         Assert.True(outcome.Accepted);
         Assert.Equal(HandshakePhase.Accepted, outcome.Phase);
@@ -21,9 +21,9 @@ public sealed class HandshakeAttemptGenerationTests
     [Fact]
     public void LateCapabilityCompletion_Dropped()
     {
-        var handshake = new HandshakeSession(new FixedCapability(true));
+        var handshake = new HandshakeSession(new FixedCapability(true), HandshakeTestFixtures.Classifier);
         handshake.Begin(new HandshakeBeginRequest(new HandshakeAttemptId(1), 1));
-        handshake.HandleFrame(new byte[] { 1 });
+        handshake.HandleFrame(HandshakeTestFixtures.ServerHello);
         handshake.Poll();
         handshake.Begin(new HandshakeBeginRequest(new HandshakeAttemptId(2), 2));
         var snapshot = handshake.GetSnapshot();

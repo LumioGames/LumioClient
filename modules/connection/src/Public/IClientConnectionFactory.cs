@@ -11,8 +11,9 @@ namespace Lumio.Client.Connection
     {
         public ClientConnectionCreateResult Create(in ClientConnectionCreateRequest request, out IClientConnection connection)
         {
-            connection = new OwnerConnection(request.Generation, request.EventCapacity);
-            return new ClientConnectionCreateResult(true);
+            var owner = new OwnerConnection(request.Generation, request.EventCapacity);
+            connection = owner;
+            return new ClientConnectionCreateResult(true, new LocalEmbeddedLoopback(owner));
         }
     }
 
@@ -76,6 +77,22 @@ namespace Lumio.Client.Connection
             lock (_gate)
             {
                 return _machine.TryDeliverLate(generation);
+            }
+        }
+
+        internal bool DeliverInbound(in EncodedFrame frame)
+        {
+            lock (_gate)
+            {
+                return _machine.TryDeliverInbound(in frame);
+            }
+        }
+
+        internal bool DeliverDisconnect()
+        {
+            lock (_gate)
+            {
+                return _machine.TryDeliverDisconnect();
             }
         }
     }

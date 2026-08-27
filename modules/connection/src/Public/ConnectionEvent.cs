@@ -12,10 +12,16 @@ namespace Lumio.Client.Connection
     public readonly struct ConnectionEvent
     {
         public ConnectionEvent(ConnectionEventKind kind, ConnectionGeneration generation, bool terminal)
+            : this(kind, generation, terminal, default(EncodedFrame))
+        {
+        }
+
+        public ConnectionEvent(ConnectionEventKind kind, ConnectionGeneration generation, bool terminal, EncodedFrame frame)
         {
             Kind = kind;
             Generation = generation;
             Terminal = terminal;
+            Frame = frame;
         }
 
         public ConnectionEventKind Kind { get; }
@@ -23,5 +29,7 @@ namespace Lumio.Client.Connection
         public ConnectionGeneration Generation { get; }
 
         public bool Terminal { get; }
+
+        public EncodedFrame Frame { get; }
     }
 }

@@ -37,17 +37,17 @@ public sealed class ReplicaMapperContractTests
             ReplicaRequests.FullSnapshot(1, 10, 1, 1, update: Array.Empty<byte>()),
             in context,
             out ReadOnlyMemory<byte> emptyPlan);
-        ReplicaMappingResult invalid = mapper.Map(
+        ReplicaMappingResult opaque = mapper.Map(
             ReplicaRequests.Delta(1, 10, 1, 2, 2, update: new byte[] { 0 }),
             in context,
-            out ReadOnlyMemory<byte> invalidPlan);
+            out ReadOnlyMemory<byte> opaquePlan);
 
         Assert.False(empty.Succeeded);
-        Assert.False(invalid.Succeeded);
+        Assert.True(opaque.Succeeded);
         Assert.Equal(0, CountPlans(emptyPlan));
-        Assert.Equal(0, CountPlans(invalidPlan));
+        Assert.Equal(1, CountPlans(opaquePlan));
         Assert.True(emptyPlan.IsEmpty);
-        Assert.True(invalidPlan.IsEmpty);
+        Assert.False(opaquePlan.IsEmpty);
     }
 
     private static int CountPlans(ReadOnlyMemory<byte> plan)

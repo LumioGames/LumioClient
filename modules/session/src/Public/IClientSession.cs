@@ -2,19 +2,6 @@ using System.Threading;
 
 namespace Lumio.Client.Session
 {
-    public enum ClientSessionState
-    {
-        Disconnected,
-        Connecting,
-        Negotiating,
-        Synchronizing,
-        Active,
-        Resyncing,
-        Reconnecting,
-        Closed,
-        Faulted
-    }
-
     public interface IClientSession
     {
         SessionCommandResult RequestConnect(in SessionConnectRequest request, CancellationToken cancellationToken);

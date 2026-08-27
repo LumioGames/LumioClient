@@ -54,8 +54,17 @@ namespace Lumio.Client.Connection
         public ClientConnectionCreateResult(bool succeeded)
         {
             Succeeded = succeeded;
+            Loopback = default!;
+        }
+
+        public ClientConnectionCreateResult(bool succeeded, LocalEmbeddedLoopback loopback)
+        {
+            Succeeded = succeeded;
+            Loopback = loopback;
         }
 
         public bool Succeeded { get; }
+
+        public LocalEmbeddedLoopback Loopback { get; }
     }
 }

@@ -7,10 +7,10 @@ public sealed class HandshakeRaceTests
     [Fact]
     public void CancelDisconnectAccepted_PriorityIsDeterministic()
     {
-        var handshake = new ClientHandshakeFactory().Create(new ImmediateCapability());
+        var handshake = new ClientHandshakeFactory().Create(new ImmediateCapability(), HandshakeTestFixtures.Classifier);
         handshake.Begin(new HandshakeBeginRequest(new HandshakeAttemptId(1), 1));
         handshake.Cancel();
-        handshake.HandleFrame(new byte[] { 1 });
+        handshake.HandleFrame(HandshakeTestFixtures.ServerHello);
         var outcome = handshake.Poll();
         Assert.Equal(HandshakePhase.Cancelled, outcome.Phase);
         Assert.False(outcome.Accepted);
