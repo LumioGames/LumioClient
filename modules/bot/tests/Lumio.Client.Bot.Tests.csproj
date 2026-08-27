@@ -19,5 +19,11 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\src\Lumio.Client.Bot.csproj" />
+    <ProjectReference Include="..\..\session\src\Lumio.Client.Session.csproj" />
+    <ProjectReference Include="..\..\connection\src\Lumio.Client.Connection.csproj" />
+    <ProjectReference Include="..\..\handshake\src\Lumio.Client.Handshake.csproj" />
+    <ProjectReference Include="..\..\input\src\Lumio.Client.Input.csproj" />
+    <ProjectReference Include="..\..\persistence\src\Lumio.Client.Persistence.csproj" />
+    <ProjectReference Include="..\..\observability\src\Lumio.Client.Observability.csproj" />
   </ItemGroup>
 </Project>
