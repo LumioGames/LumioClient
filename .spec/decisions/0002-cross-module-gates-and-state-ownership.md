@@ -5,7 +5,7 @@
 
 ## 背景
 
-对提交 `9ca0065` 的模块架构审查(报告存档于 [`docs/LumioClient_Module_Architecture_Review_9ca0065.md`](../../docs/LumioClient_Module_Architecture_Review_9ca0065.md))核实了 5 个 P1:权威更新的原子提交所有者未闭合、Handshake 之后的 Gameplay Scope 激活门无所有者、Active 消息权限校验存在责任空洞、`ClientCommandSeq` 与 Config/Runtime Handle 等可变状态所有权有歧义、生成契约的工程层级未冻结。这些跨模块接缝不封口,实现者将被迫自行发明关键 API、状态所有权和失败顺序。ADR 0001 的 11 模块集合与依赖方向不受影响,本决策只在其上补齐接缝所有权。
+对提交 `9ca0065` 的模块架构审查(报告存档于 `docs/LumioClient_Module_Architecture_Review_9ca0065.md`,已于 d818e33 随设计包替换删除)核实了 5 个 P1:权威更新的原子提交所有者未闭合、Handshake 之后的 Gameplay Scope 激活门无所有者、Active 消息权限校验存在责任空洞、`ClientCommandSeq` 与 Config/Runtime Handle 等可变状态所有权有歧义、生成契约的工程层级未冻结。这些跨模块接缝不封口,实现者将被迫自行发明关键 API、状态所有权和失败顺序。ADR 0001 的 11 模块集合与依赖方向不受影响,本决策只在其上补齐接缝所有权。
 
 ## 决策
 
