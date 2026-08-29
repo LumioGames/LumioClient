@@ -11,7 +11,7 @@ public sealed class BotShortcutTests
         var xml = XDocument.Load(csproj);
         var refs = xml.Descendants()
             .Where(e => e.Name.LocalName == "ProjectReference")
-            .Select(e => System.IO.Path.GetFileNameWithoutExtension(e.Attribute("Include")!.Value))
+            .Select(e => MsBuildPath.ProjectName(e.Attribute("Include")!.Value))
             .ToArray();
         Assert.Contains("Lumio.Client.Session", refs);
         Assert.DoesNotContain("Lumio.Client.Connection", refs);
