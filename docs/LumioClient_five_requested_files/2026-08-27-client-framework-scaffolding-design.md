@@ -175,7 +175,9 @@ Composition Root 只存在于：
 
 ## 9. 成熟方案选型总表
 
-> **2026-08-29 经 T-00006 修订。** 本节依赖表原先在 5 处写 `10.0.11`：其中 `System.Threading.Channels` 与仓库锁定值不符（`Directory.Packages.props` = `10.0.0`），另四行的包全仓未被引用却写死补丁号（虚假精度，随 servicing 腐烂）。本次改为实际锁定值或不含数字的表述。同目录 `LumioClient_framework_scaffolding_manifest.txt` 与 `LumioClient_framework_scaffolding_audit.json` 记录的本文件 SHA-256 对应**修订前**版本，需随 R-00065 / R-00067 评审重算。
+> **2026-08-29 经 T-00006 修订。** 本节依赖表原先在 5 处写 `10.0.11`：其中 `System.Threading.Channels` 与仓库锁定值不符（`Directory.Packages.props` = `10.0.0`），另四行的包全仓未被引用却写死补丁号（虚假精度，随 servicing 腐烂）。本次改为实际锁定值或不含数字的表述。
+>
+> **2026-08-29 经 R-00065 / R-00067 修订。** 依 SPIKE-HYBRIDCLR-63（R-00256）实测结论，本节与 `12.10 hybridclr-adapter` 的「官方 HybridCLR 8.12.0 候选」更正为 `8.14.1`：8.12.0 真实存在但已过期。同目录 `LumioClient_framework_scaffolding_manifest.txt` 与 `LumioClient_framework_scaffolding_audit.json` 记录的本文件 bytes / SHA-256 已随本次修订重算，并由 `eng/verify-five-file-package.mjs` 机器守护——此前两次修订之所以能让记录静默失真，正因为全仓没有任何闸门校验这些值。
 
 | 能力 | 候选（至少 2 个，含自研） | 选用 | 许可证 | 锁定版本策略 | AOT/Unity/确定性 | 为何不自研 | Adapter 隔离点 | 第三方类型穿过公共接口 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -193,7 +195,7 @@ Composition Root 只存在于：
 | 属性测试 | FsCheck.Xunit；Hedgehog；自研随机器 | FsCheck.Xunit 3.3.4 | BSD-3-Clause | 中央包精确版本；seed 固化进失败证据 | 不进入生产；确定性复现 seed | 成熟 shrink 与随机序列模型 | tests/Property | 否 |
 | 依赖图测试 | ArchUnitNET；自写 MSBuild binlog parser；纯人工 | ArchUnitNET.xUnitV3 0.13.3 + 小型 allowlist 校验器 | Apache-2.0 | 中央包锁定；allowlist 数据版本化 | 只在测试工具链；Unity asmdef 另做 JSON 图检查 | 成熟程序集规则表达；自研仅限仓库特定 allowlist 读取 | `tests/Lumio.Client.ArchitectureTests` | 否 |
 | Unity 输入 | Unity Input System；旧 Input Manager；自研输入系统 | Unity Input System 1.17.0 | Unity Companion License | UPM lock + Unity 版本锁定 | 只在 unity-adapter；核心仅接收平台无关 Sample | 官方设备/Action/重绑定能力成熟 | `unity-adapter/UnitySurface/Input` | 否 |
-| HybridCLR | 官方 HybridCLR；原生 AssemblyLoadContext；自研 IL VM | 官方 HybridCLR 8.12.0 候选，须通过版本/许可/AOT spike | 以官方发行许可审查为准 | Unity Package lock；仅在 spike 关闭后固化 | 仅 Unity 支持矩阵；核心接口不携带 HybridCLR 类型 | 不维护第二 IL 运行时或自制 loader | `hybridclr-adapter/Internal/Official` | 否 |
+| HybridCLR | 官方 HybridCLR；原生 AssemblyLoadContext；自研 IL VM | 官方 HybridCLR 8.14.1 候选，须通过版本/许可/AOT spike | 以官方发行许可审查为准 | Unity Package lock；仅在 spike 关闭后固化 | 仅 Unity 支持矩阵；核心接口不携带 HybridCLR 类型 | 不维护第二 IL 运行时或自制 loader | `hybridclr-adapter/Internal/Official` | 否 |
 | 持久化文件 | BCL FileStream + 原子替换；SQLite；自研数据库 | Foundation 只定义窄端口；Production 默认 BCL 文件原子替换，SQLite 仅在 spike 证明需要后采用 | MIT/Public Domain（视 SQLite 包） | 平台矩阵与 lock file | 异步 I/O 不在 Owner Tick 内阻塞；格式使用生成 Artifact/manifest | 避免在第一阶段引入数据库运维面 | `persistence/Internal/FileSystem` | 否 |
 | Host 生命周期 | Generic Host；自建 service locator；显式构造 | Bot Host 用 Generic Host（随 SDK，当前未引入 `Microsoft.Extensions.Hosting` 包）；核心模块显式构造 | MIT | 中央包锁定 | Bot 为 net10.0；Unity 不依赖 Generic Host | 核心保持透明生命周期；Host 采用成熟启动/停止模型 | `bot/host` | 否 |
 | CLI | `System.CommandLine`；Spectre.Console.Cli；手写参数解析 | `System.CommandLine` 稳定版，锁定于中央包 | MIT | 中央包精确版本 | 仅 Bot Host；不进入 Unity/AOT | 成熟校验和 help；避免命令行边角错误 | `bot/host/CommandLine` | 否 |
@@ -1792,7 +1794,7 @@ public interface IHybridClrScopeLoader
 
 | 能力 | 候选 | 选用 | 许可证/版本 | AOT/确定性 | 为何不自研 | Adapter 隔离点 | 第三方类型穿过公共接口 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| IL runtime | 官方 HybridCLR / ALC / 自研 VM | 官方 HybridCLR 8.12.0 候选 | 见第 9 节对应许可证/锁定策略 | 公共 API 不泄漏 | 成熟语义、减少维护面 | Internal/Official | 否 |
+| IL runtime | 官方 HybridCLR / ALC / 自研 VM | 官方 HybridCLR 8.14.1 候选 | 见第 9 节对应许可证/锁定策略 | 公共 API 不泄漏 | 成熟语义、减少维护面 | Internal/Official | 否 |
 | Artifact verify | BCL crypto / package API / 自研 | BCL + generated manifest | 见第 9 节对应许可证/锁定策略 | 公共 API 不泄漏 | 成熟语义、减少维护面 | Internal/Validation | 否 |
 | operation queue | Channels / Unity coroutine only / 自研 | Channels + MainThread pump | 见第 9 节对应许可证/锁定策略 | 公共 API 不泄漏 | 成熟语义、减少维护面 | Internal | 否 |
 
