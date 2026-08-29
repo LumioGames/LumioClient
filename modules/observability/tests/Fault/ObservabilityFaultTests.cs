@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Lumio.Client.Observability;
 
@@ -33,7 +32,7 @@ public sealed class ObservabilityFaultTests
             }
 
             Assert.Null(thrown);
-            await WaitForAsync(() => writer.GetSnapshot().SinkFaulted, TimeSpan.FromSeconds(2), cancellationToken);
+            await WaitForAsync(() => writer.GetSnapshot().SinkFaulted, cancellationToken);
 
             var snapshot = writer.GetSnapshot();
             Assert.True(snapshot.SinkFaulted);
@@ -139,16 +138,13 @@ public sealed class ObservabilityFaultTests
         }
     }
 
-    private static async Task WaitForAsync(Func<bool> condition, TimeSpan timeout, CancellationToken cancellationToken)
+    // Waits for the observed state, never for elapsed time: a fault that never arrives must surface as a
+    // hung test cancelled by the runner, not as a pass/fail decided by how fast the host schedules.
+    private static async Task WaitForAsync(Func<bool> condition, CancellationToken cancellationToken)
     {
-        var start = Stopwatch.StartNew();
         while (!condition())
         {
-            if (start.Elapsed > timeout)
-            {
-                Assert.Fail("Timed out waiting for pipeline fault.");
-            }
-
+            // Pacing only — the loop is bounded by cancellation, not by a deadline.
             await Task.Delay(1, cancellationToken);
         }
     }

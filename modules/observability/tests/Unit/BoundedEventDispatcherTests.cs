@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Lumio.Client.Observability;
 
@@ -8,131 +7,141 @@ namespace Lumio.Client.Observability.Tests.Unit;
 public sealed class BoundedEventDispatcherTests
 {
     [Fact]
-    public static async Task CriticalQueueFull_ReturnsWithoutBlocking()
+    public static void CriticalQueueFull_ReturnsWithoutBlocking()
     {
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-        var sink = new BlockingSink();
-        var factory = new DefaultClientEventPipelineFactory();
-        var options = new ClientEventPipelineOptions(1, 1, TimeSpan.FromSeconds(2));
-        var created = factory.Create(in options, sink, out var writer);
-        Assert.True(created.Succeeded);
-        var bounded = Assert.IsType<BoundedEventWriter>(writer);
-        var record = new ClientEventRecord(EventSchemaClass.Critical, new byte[] { 1 });
+        using var pipeline = ParkedFullPipeline.Create(TestContext.Current.CancellationToken);
+        var writer = pipeline.Writer;
+        var before = writer.GetSnapshot();
 
-        try
-        {
-            var accepted = 0;
-            var last = new ClientEventWriteResult(ClientEventWriteOutcome.Rejected);
-            var clock = Stopwatch.StartNew();
-            for (var i = 0; i < 8; i++)
-            {
-                last = await TryWriteWithoutBlocking(writer, record, cancellationToken);
-                if (last.Succeeded)
-                {
-                    accepted++;
-                    continue;
-                }
+        var result = writer.TryWrite(new ClientEventRecord(EventSchemaClass.Critical, new byte[] { 1 }));
+        var after = writer.GetSnapshot();
 
-                break;
-            }
-
-            clock.Stop();
-            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(1), clock.Elapsed.ToString());
-            Assert.Equal(ClientEventWriteOutcome.QueueFull, last.Outcome);
-            Assert.InRange(accepted, 1, 3);
-            var snapshot = writer.GetSnapshot();
-            Assert.Equal((ulong)accepted, snapshot.LastProducerSequence);
-            Assert.False(snapshot.Closed);
-        }
-        finally
-        {
-            sink.Release.Set();
-            bounded.Close();
-        }
+        // The only reader is parked inside the sink and the single slot is occupied, so a writer that
+        // waited for capacity could not return at all: reaching this assertion is the non-blocking proof.
+        Assert.Equal(ClientEventWriteOutcome.QueueFull, result.Outcome);
+        Assert.Equal(before.LastProducerSequence, after.LastProducerSequence);
+        Assert.Equal(before.DropCount, after.DropCount);
+        Assert.False(after.Closed);
     }
 
     [Fact]
-    public static async Task DroppableQueueFull_DropsOnlySchemaAllowedClass()
+    public static void DroppableQueueFull_DropsOnlySchemaAllowedClass()
     {
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-        var sink = new BlockingSink();
-        var factory = new DefaultClientEventPipelineFactory();
-        var options = new ClientEventPipelineOptions(1, 1, TimeSpan.FromSeconds(2));
-        var created = factory.Create(in options, sink, out var writer);
-        Assert.True(created.Succeeded);
-        var bounded = Assert.IsType<BoundedEventWriter>(writer);
-        var critical = new ClientEventRecord(EventSchemaClass.Critical, new byte[] { 2 });
+        using var pipeline = ParkedFullPipeline.Create(TestContext.Current.CancellationToken);
+        var writer = pipeline.Writer;
+        var before = writer.GetSnapshot();
 
-        try
-        {
-            await FillUntilQueueFull(writer, critical, cancellationToken);
+        var dropped = writer.TryWrite(new ClientEventRecord(EventSchemaClass.Droppable, new byte[] { 3 }));
+        var durableFull = writer.TryWrite(new ClientEventRecord(EventSchemaClass.Durable, new byte[] { 4 }));
+        var criticalFull = writer.TryWrite(new ClientEventRecord(EventSchemaClass.Critical, new byte[] { 5 }));
+        var rejected = writer.TryWrite(new ClientEventRecord(EventSchemaClass.Invalid, ReadOnlyMemory<byte>.Empty));
+        var after = writer.GetSnapshot();
 
-            var before = writer.GetSnapshot();
-            var droppable = new ClientEventRecord(EventSchemaClass.Droppable, new byte[] { 3 });
-            var durable = new ClientEventRecord(EventSchemaClass.Durable, new byte[] { 4 });
-            var anotherCritical = new ClientEventRecord(EventSchemaClass.Critical, new byte[] { 5 });
-            var invalid = new ClientEventRecord(EventSchemaClass.Invalid, ReadOnlyMemory<byte>.Empty);
-
-            var dropped = writer.TryWrite(droppable);
-            var durableFull = writer.TryWrite(durable);
-            var criticalFull = writer.TryWrite(anotherCritical);
-            var rejected = writer.TryWrite(invalid);
-            var after = writer.GetSnapshot();
-
-            Assert.Equal(ClientEventWriteOutcome.Dropped, dropped.Outcome);
-            Assert.Equal(ClientEventWriteOutcome.QueueFull, durableFull.Outcome);
-            Assert.Equal(ClientEventWriteOutcome.QueueFull, criticalFull.Outcome);
-            Assert.Equal(ClientEventWriteOutcome.Rejected, rejected.Outcome);
-            Assert.Equal(before.LastProducerSequence, after.LastProducerSequence);
-            Assert.Equal(before.DropCount + 1, after.DropCount);
-        }
-        finally
-        {
-            sink.Release.Set();
-            bounded.Close();
-        }
+        Assert.Equal(ClientEventWriteOutcome.Dropped, dropped.Outcome);
+        Assert.Equal(ClientEventWriteOutcome.QueueFull, durableFull.Outcome);
+        Assert.Equal(ClientEventWriteOutcome.QueueFull, criticalFull.Outcome);
+        Assert.Equal(ClientEventWriteOutcome.Rejected, rejected.Outcome);
+        Assert.Equal(before.LastProducerSequence, after.LastProducerSequence);
+        Assert.Equal(before.DropCount + 1, after.DropCount);
     }
 
-    private static async Task FillUntilQueueFull(
-        IClientEventWriter writer,
-        ClientEventRecord record,
-        CancellationToken cancellationToken)
+    /// <summary>
+    /// A capacity-1 pipeline driven into a <em>stable</em> QueueFull state.
+    /// </summary>
+    /// <remarks>
+    /// QueueFull is not observable by simply writing until the outcome appears: the background dispatcher
+    /// may dequeue right after that observation and silently free the slot, so the next write is accepted
+    /// instead of dropped. Here the dispatcher is first made to take the one record it can take and park
+    /// inside the sink; only then is the single slot filled. With the sole reader parked, fullness cannot
+    /// change underneath the assertions. Every wait below is a wait on an observed state transition, never
+    /// on elapsed time — the tests must fail on QueueFull semantics, not on how fast the host schedules.
+    /// </remarks>
+    private sealed class ParkedFullPipeline : IDisposable
     {
-        for (var i = 0; i < 8; i++)
+        private readonly ParkingSink _sink;
+        private readonly BoundedEventWriter _writer;
+
+        private ParkedFullPipeline(ParkingSink sink, BoundedEventWriter writer)
         {
-            var result = await TryWriteWithoutBlocking(writer, record, cancellationToken);
-            if (result.Outcome == ClientEventWriteOutcome.QueueFull)
+            _sink = sink;
+            _writer = writer;
+        }
+
+        public IClientEventWriter Writer => _writer;
+
+        public static ParkedFullPipeline Create(CancellationToken cancellationToken)
+        {
+            var sink = new ParkingSink();
+            var factory = new DefaultClientEventPipelineFactory();
+
+            // The sink timeout only bounds how long the dispatcher may stay parked; it is never asserted on,
+            // and if it did elapse the queue would stay full and every assertion below would still hold.
+            var options = new ClientEventPipelineOptions(1, 1, TimeSpan.FromMinutes(10));
+            var created = factory.Create(in options, sink, out var writer);
+            Assert.True(created.Succeeded);
+            var bounded = Assert.IsType<BoundedEventWriter>(writer);
+            var pipeline = new ParkedFullPipeline(sink, bounded);
+
+            try
             {
-                return;
-            }
+                var first = writer.TryWrite(new ClientEventRecord(EventSchemaClass.Critical, new byte[] { 1 }));
+                Assert.Equal(ClientEventWriteOutcome.Accepted, first.Outcome);
+                sink.WaitUntilParked(cancellationToken);
 
-            Assert.True(result.Succeeded);
+                var second = writer.TryWrite(new ClientEventRecord(EventSchemaClass.Critical, new byte[] { 2 }));
+                Assert.Equal(ClientEventWriteOutcome.Accepted, second.Outcome);
+
+                var snapshot = writer.GetSnapshot();
+                Assert.Equal(2UL, snapshot.LastProducerSequence);
+                Assert.Equal(2, snapshot.QueueDepth);
+                Assert.Equal(0, snapshot.DropCount);
+                Assert.False(snapshot.Closed);
+                return pipeline;
+            }
+            catch
+            {
+                pipeline.Dispose();
+                throw;
+            }
         }
 
-        Assert.Fail("Capacity-1 pipeline never returned QueueFull.");
+        public void Dispose()
+        {
+            // Release before closing: Close waits for the dispatcher, which is parked inside the sink.
+            // The sink outlives Close so the dispatcher's final drain never touches a disposed handle.
+            _sink.Release();
+            _writer.Close();
+            _sink.Dispose();
+        }
     }
 
-    private static async Task<ClientEventWriteResult> TryWriteWithoutBlocking(
-        IClientEventWriter writer,
-        ClientEventRecord record,
-        CancellationToken cancellationToken)
+    private sealed class ParkingSink : IClientEventSink, IDisposable
     {
-        var write = Task.Run(() => writer.TryWrite(record), cancellationToken);
-        var timeout = Task.Delay(250, cancellationToken);
-        var completed = await Task.WhenAny(write, timeout);
-        Assert.Same(write, completed);
-        return await write;
-    }
+        private readonly ManualResetEventSlim _parked = new ManualResetEventSlim(false);
+        private readonly ManualResetEventSlim _release = new ManualResetEventSlim(false);
 
-    private sealed class BlockingSink : IClientEventSink
-    {
-        public ManualResetEventSlim Release { get; } = new ManualResetEventSlim(false);
+        public void WaitUntilParked(CancellationToken cancellationToken)
+        {
+            _parked.Wait(cancellationToken);
+        }
+
+        public void Release()
+        {
+            _release.Set();
+        }
+
+        public void Dispose()
+        {
+            _parked.Dispose();
+            _release.Dispose();
+        }
 
         public ValueTask<ClientEventSinkResult> WriteBatchAsync(
             ReadOnlyMemory<ClientEventRecord> records,
             CancellationToken cancellationToken)
         {
-            Release.Wait(cancellationToken);
+            _parked.Set();
+            _release.Wait(cancellationToken);
             return new ValueTask<ClientEventSinkResult>(new ClientEventSinkResult(true, records.Length, false));
         }
     }
