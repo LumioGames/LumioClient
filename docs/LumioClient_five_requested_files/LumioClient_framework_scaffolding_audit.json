@@ -18,8 +18,8 @@
   "files": [
     {
       "name": "2026-08-27-client-framework-scaffolding-design.md",
-      "bytes": 139853,
-      "sha256": "f23a7d27418a54e8327a373f4cb70f9ba58311001cbe010decedd790f477ba00"
+      "bytes": 140945,
+      "sha256": "dc942bfd5c56ea2871f93b86c8b771c38f179f6ca15260e1cd5102b3be3e7f75"
     },
     {
       "name": "2026-08-27-client-foundation-implementation.md",
@@ -33,8 +33,8 @@
     },
     {
       "name": "LumioClient_framework_scaffolding_manifest.txt",
-      "bytes": 1819,
-      "sha256": "0706ca7f93bbe7572384f64658da7287ab0787292103e5813831b1e023027d5e"
+      "bytes": 3240,
+      "sha256": "d66a081fcea49e99e1a327fd5449222626211b200d426cca35c50055b5a675f8"
     },
     {
       "name": "LumioClient_framework_scaffolding_audit.json",
@@ -565,8 +565,20 @@
     {
       "id": "utf8_readable",
       "status": "pass"
+    },
+    {
+      "id": "line_endings_lf_in_repository",
+      "status": "pass",
+      "details": {
+        "convention": "LF in the repository working tree; the 2026-08-27 Workflow attachments are the CRLF side.",
+        "files_with_cr": []
+      }
     }
   ],
   "overall_status": "pass",
-  "historical_note": "The prior conversation summary mentioned a larger 57-Markdown delivery including task-card files. This recovered package intentionally contains only the five files requested in the screenshot and does not claim to re-audit unavailable task-card files."
+  "historical_note": "The prior conversation summary mentioned a larger 57-Markdown delivery including task-card files. This recovered package intentionally contains only the five files requested in the screenshot and does not claim to re-audit unavailable task-card files.",
+  "revisions": [
+    "2026-08-29 T-00006: design section 9 package pins corrected (five bogus 10.0.11).",
+    "2026-08-29 R-00065 / R-00067: design HybridCLR 8.12.0 candidate corrected to 8.14.1 per SPIKE-HYBRIDCLR-63 (R-00256); files[] bytes/sha256 recomputed. generated_at stays 2026-08-27 — it dates the original structural audit, not these record repairs."
+  ]
 }

@@ -7,12 +7,20 @@ The former conversation download handles had expired; these are recovered copies
 from the prior delivery specification, signatures, task order, test names, and audit summary.
 They are not claimed to be byte-for-byte identical to the expired temporary attachments.
 
+REVISIONS AFTER RECOVERY
+------------------------
+2026-08-29  T-00006 revised design section 9 (five bogus 10.0.11 package pins).
+2026-08-29  R-00065 / R-00067 revised design "HybridCLR 8.12.0 candidate" to 8.14.1 per
+            SPIKE-HYBRIDCLR-63 (R-00256), and recomputed the design bytes/sha256 below.
+Every recorded value here is now machine-checked by eng/verify-five-file-package.mjs:
+before that gate existed the first revision silently invalidated this record for two days.
+
 FILES
 -----
 2026-08-27-client-framework-scaffolding-design.md
   purpose: Repository scaffolding + all 11 module implementation-level designs
-  bytes: 139853
-  sha256: f23a7d27418a54e8327a373f4cb70f9ba58311001cbe010decedd790f477ba00
+  bytes: 140945
+  sha256: dc942bfd5c56ea2871f93b86c8b771c38f179f6ca15260e1cd5102b3be3e7f75
 2026-08-27-client-foundation-implementation.md
   purpose: Wave 0-6 executable Foundation plan
   bytes: 81681
@@ -32,6 +40,19 @@ design modules: 11
 foundation plan tasks: 37
 vertical plan tasks: 15
 production source files in archive: 0
+
+LINE ENDINGS
+------------
+Repository working tree: LF for all five files (root .gitattributes pins `*.md text eol=lf`).
+The Workflow attachments uploaded on 2026-08-27 to R-00065 / R-00067 are CRLF copies of the
+pre-revision manifest and audit; verified by downloading the attachment bytes:
+  LumioClient_framework_scaffolding_manifest.txt  CRLF  1861 bytes  d88cbbc63bd69982c97925e7934e55222bc5b97eb1d5874ba787141eb4bb452a
+  LumioClient_framework_scaffolding_audit.json    CRLF 12227 bytes  468e923e137e0d6a12f1d36a25207878cbe20d86c2de7e6d9258d2c618d6f9c0
+The matching pre-revision LF copies in this repository were 1819 bytes
+0706ca7f93bbe7572384f64658da7287ab0787292103e5813831b1e023027d5e and 11655 bytes
+d59214bb6dd22f9ab00639b6731b9ba7793fb2cb566dfc492ec6933f7c4cbd58.
+CRLF is the attachment side and LF is the repository side; records that called
+1819 / 0706ca7f... "the uploaded, LF-normalised copy" had the two sides reversed.
 
 EXPECTED ARCHIVE ROOT
 ---------------------

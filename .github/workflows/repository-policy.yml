@@ -23,6 +23,10 @@ jobs:
         run: |
           node eng/verify-sdk-pin.mjs
           node --test eng/verify-sdk-pin.test.mjs
+      - name: Validate five-file package records
+        run: |
+          node eng/verify-five-file-package.mjs
+          node --test eng/verify-five-file-package.test.mjs
       - name: Validate contract mirror
         shell: bash
         run: |
