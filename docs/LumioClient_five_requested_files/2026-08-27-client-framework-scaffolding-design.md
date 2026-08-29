@@ -175,13 +175,15 @@ Composition Root 只存在于：
 
 ## 9. 成熟方案选型总表
 
+> **2026-08-29 经 T-00006 修订。** 本节依赖表原先在 5 处写 `10.0.11`：其中 `System.Threading.Channels` 与仓库锁定值不符（`Directory.Packages.props` = `10.0.0`），另四行的包全仓未被引用却写死补丁号（虚假精度，随 servicing 腐烂）。本次改为实际锁定值或不含数字的表述。同目录 `LumioClient_framework_scaffolding_manifest.txt` 与 `LumioClient_framework_scaffolding_audit.json` 记录的本文件 SHA-256 对应**修订前**版本，需随 R-00065 / R-00067 评审重算。
+
 | 能力 | 候选（至少 2 个，含自研） | 选用 | 许可证 | 锁定版本策略 | AOT/Unity/确定性 | 为何不自研 | Adapter 隔离点 | 第三方类型穿过公共接口 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 有界异步队列 | `System.Threading.Channels`；`TPL Dataflow`；自研环形队列 | `System.Threading.Channels` 10.0.11 | MIT | 中央包版本 + lock file；BCL 同 SDK 锁定 | 核心可用；不依赖 Unity；队列顺序可测试；不把调度时序计入权威 Hash | 成熟背压、取消、完成语义；避免重写竞态复杂的队列 | 各模块 `Internal/Queues/*` | 否 |
-| Socket 与字节管道 | BCL `Socket`/`SslStream` + `System.IO.Pipelines`；第三方网络框架；自研 TCP/KCP | BCL Socket/SslStream + Pipelines 10.0.11 | MIT | 随 .NET SDK；Remote Adapter 单独 spike | Headless 可用；Unity/AOT 需目标矩阵；确定性只约束解码后顺序 | 平台栈已经处理 TCP/TLS/缓冲；本仓不拥有可靠 UDP 协议 | `connection/Internal/Transport/Remote` | 否 |
+| 有界异步队列 | `System.Threading.Channels`；`TPL Dataflow`；自研环形队列 | `System.Threading.Channels` 10.0.0 | MIT | 中央包版本 + lock file；BCL 同 SDK 锁定 | 核心可用；不依赖 Unity；队列顺序可测试；不把调度时序计入权威 Hash | 成熟背压、取消、完成语义；避免重写竞态复杂的队列 | 各模块 `Internal/Queues/*` | 否 |
+| Socket 与字节管道 | BCL `Socket`/`SslStream` + `System.IO.Pipelines`；第三方网络框架；自研 TCP/KCP | BCL Socket/SslStream + Pipelines（随 SDK，未引入 NuGet 包） | MIT | 随 .NET SDK；Remote Adapter 单独 spike | Headless 可用；Unity/AOT 需目标矩阵；确定性只约束解码后顺序 | 平台栈已经处理 TCP/TLS/缓冲；本仓不拥有可靠 UDP 协议 | `connection/Internal/Transport/Remote` | 否 |
 | 缓冲池 | `ArrayPool<T>`/`MemoryPool<T>`；RecyclableMemoryStream；自研池 | BCL ArrayPool/MemoryPool | MIT | 随 SDK | AOT 兼容；借用期由 Adapter 内部封闭；不得跨 Tick 泄漏 | 减少自研生命周期与泄漏风险 | Codec/Transport 内部 | 否 |
-| 不可变集合 | `System.Collections.Immutable`；普通集合复制；自研持久化集合 | `System.Collections.Immutable` 10.0.11 | MIT | 中央包锁定 | 核心可用；权威排序必须显式，不依赖哈希迭代顺序 | 成熟快照语义；避免隐藏共享可变状态 | Snapshot/证据值内部 | 否 |
-| 结构化日志门面 | `Microsoft.Extensions.Logging.Abstractions`；Serilog API；自研 Logger | `Microsoft.Extensions.Logging.Abstractions` 10.0.11，仅 Adapter | MIT | 中央包锁定 | 核心事件先进入生成 Event Schema；Unity/IL2CPP 需 Sink 验证 | 不发明日志级别、scope 与 provider 生命周期 | `observability/Internal/Adapters/Logging` | 否 |
+| 不可变集合 | `System.Collections.Immutable`；普通集合复制；自研持久化集合 | `System.Collections.Immutable`（当前未引入，引入时以中央包版本为准） | MIT | 中央包锁定 | 核心可用；权威排序必须显式，不依赖哈希迭代顺序 | 成熟快照语义；避免隐藏共享可变状态 | Snapshot/证据值内部 | 否 |
+| 结构化日志门面 | `Microsoft.Extensions.Logging.Abstractions`；Serilog API；自研 Logger | `Microsoft.Extensions.Logging.Abstractions`（当前未引入，引入时以中央包版本为准），仅 Adapter | MIT | 中央包锁定 | 核心事件先进入生成 Event Schema；Unity/IL2CPP 需 Sink 验证 | 不发明日志级别、scope 与 provider 生命周期 | `observability/Internal/Adapters/Logging` | 否 |
 | 日志落盘 | Serilog；NLog；自研滚动文件 | Serilog 4.4.0 + Serilog.Sinks.File 7.0.0 | Apache-2.0 | 中央包精确版本 + lock file | 仅 Production Sink；不进入确定性逻辑；IL2CPP 由 spike 验证 | 成熟 rolling/buffering；Failure Bundle 仍使用本仓生成事件编码 | `observability/Internal/Adapters/Serilog` | 否 |
 | Metrics/Trace | OpenTelemetry .NET；Application Insights SDK；自研 Metrics/Trace | OpenTelemetry 1.17.0 | Apache-2.0 | 中央包精确版本 + exporter 白名单 | Headless 优先；IL2CPP/AOT 由 `SPIKE-OTEL-IL2CPP` 关闭 | 遵循标准语义与 exporter 生态；避免自研 trace context | `observability/Internal/Adapters/OpenTelemetry` | 否 |
 | 配置/JSON | `System.Text.Json` source generation；Newtonsoft.Json；自研解析器 | `System.Text.Json` source generation | MIT | 随 SDK；生成 Context 纳入编译 | AOT 友好；禁止反射 fallback；不用于替代生成协议 Codec | BCL 提供成熟解析与源生成 | Host 配置、manifest Adapter | 否 |
@@ -193,7 +195,7 @@ Composition Root 只存在于：
 | Unity 输入 | Unity Input System；旧 Input Manager；自研输入系统 | Unity Input System 1.17.0 | Unity Companion License | UPM lock + Unity 版本锁定 | 只在 unity-adapter；核心仅接收平台无关 Sample | 官方设备/Action/重绑定能力成熟 | `unity-adapter/UnitySurface/Input` | 否 |
 | HybridCLR | 官方 HybridCLR；原生 AssemblyLoadContext；自研 IL VM | 官方 HybridCLR 8.12.0 候选，须通过版本/许可/AOT spike | 以官方发行许可审查为准 | Unity Package lock；仅在 spike 关闭后固化 | 仅 Unity 支持矩阵；核心接口不携带 HybridCLR 类型 | 不维护第二 IL 运行时或自制 loader | `hybridclr-adapter/Internal/Official` | 否 |
 | 持久化文件 | BCL FileStream + 原子替换；SQLite；自研数据库 | Foundation 只定义窄端口；Production 默认 BCL 文件原子替换，SQLite 仅在 spike 证明需要后采用 | MIT/Public Domain（视 SQLite 包） | 平台矩阵与 lock file | 异步 I/O 不在 Owner Tick 内阻塞；格式使用生成 Artifact/manifest | 避免在第一阶段引入数据库运维面 | `persistence/Internal/FileSystem` | 否 |
-| Host 生命周期 | Generic Host；自建 service locator；显式构造 | Bot Host 用 Generic Host 10.0.11；核心模块显式构造 | MIT | 中央包锁定 | Bot 为 net10.0；Unity 不依赖 Generic Host | 核心保持透明生命周期；Host 采用成熟启动/停止模型 | `bot/host` | 否 |
+| Host 生命周期 | Generic Host；自建 service locator；显式构造 | Bot Host 用 Generic Host（随 SDK，当前未引入 `Microsoft.Extensions.Hosting` 包）；核心模块显式构造 | MIT | 中央包锁定 | Bot 为 net10.0；Unity 不依赖 Generic Host | 核心保持透明生命周期；Host 采用成熟启动/停止模型 | `bot/host` | 否 |
 | CLI | `System.CommandLine`；Spectre.Console.Cli；手写参数解析 | `System.CommandLine` 稳定版，锁定于中央包 | MIT | 中央包精确版本 | 仅 Bot Host；不进入 Unity/AOT | 成熟校验和 help；避免命令行边角错误 | `bot/host/CommandLine` | 否 |
 
 ## 10. 跨模块端口总表
