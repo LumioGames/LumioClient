@@ -103,6 +103,7 @@ Server 默认 CoreCLR；Server HybridCLR 仅作为后续可行性 Spike，不是
 - `LumioCoreEngine` 统一 Native 包和生成 Managed Contract；不直接引用 NativeCore/VoxelEngine 源码。
 - Server 公开的 Envelope/Endpoint/Handshake Contract；不引用 Server 实现。
 - Unity/HybridCLR/平台 SDK 和经过供应链审查的托管包，通过 Adapter 隔离。
+- 架构源发布物不上任何 NuGet feed，公共消费模型是字节级只读镜像加 sha256 锁：`contract-mirror/upstream` 是 `LumioGameEngineArchitecture` 已发布面的逐字节副本，pin 与范围见 [`contract-mirror/MIRROR.md`](contract-mirror/MIRROR.md)。镜像只读，改动由 `bash eng/verify-contract-mirror.sh` 在 CI 拦截。
 
 ## Generated Contract Dependencies
 

@@ -2,10 +2,20 @@
   "version": 1,
   "upstreamCorpusPin": {
     "requirement": "UPSTREAM-GENERATED-CONTRACT-API-MAP",
-    "status": "unpublished",
+    "status": "mirrored",
     "packageId": null,
     "packageVersion": null,
-    "hashes": []
+    "sourceRepository": "LumioGameEngineArchitecture",
+    "sourceCommit": "a206e2ca29be81a80f143d0251f4d525beadbf44",
+    "baselineId": "LGE-V1.4-2026-08-27",
+    "corpusRoot": "contract-mirror/upstream/fixtures",
+    "lockFile": "contract-mirror/contract-mirror.sha256",
+    "hashes": [
+      {
+        "path": "contract-mirror/contract-mirror.sha256",
+        "sha256": "bc5966d406171ad21d1e04a160e0b6e7ff3660c22a439b7dc36a90f641462747"
+      }
+    ]
   },
   "localFaultScripts": [
     {

@@ -46,7 +46,26 @@ public sealed class UpstreamCorpusPin
 
     public string? PackageVersion { get; set; }
 
-    public string[] Hashes { get; set; } = Array.Empty<string>();
+    public string? SourceRepository { get; set; }
+
+    public string? SourceCommit { get; set; }
+
+    public string? BaselineId { get; set; }
+
+    public string? CorpusRoot { get; set; }
+
+    public string? LockFile { get; set; }
+
+    // A bare hash cannot be checked against anything — the pin binds a path to a
+    // digest so a reader can recompute it.
+    public PinnedHash[] Hashes { get; set; } = Array.Empty<PinnedHash>();
+}
+
+public sealed class PinnedHash
+{
+    public string Path { get; set; } = "";
+
+    public string Sha256 { get; set; } = "";
 }
 
 public sealed class LocalFaultScript

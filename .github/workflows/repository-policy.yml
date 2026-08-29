@@ -23,6 +23,17 @@ jobs:
         run: |
           node eng/verify-sdk-pin.mjs
           node --test eng/verify-sdk-pin.test.mjs
+      - name: Validate contract mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Hard gate: the vendored architecture bytes still match the lock. This is
+          # self-contained by design — no sibling checkout exists on CI, so a check
+          # that reached for one would silently pass and gate nothing.
+          bash eng/verify-contract-mirror.sh
+          # The pin must be a commit sha, not a branch name: branches move.
+          grep -qE '^- upstream commit: `[0-9a-f]{40}`$' contract-mirror/MIRROR.md
+          test -s contract-mirror/contract-mirror.sha256
       - name: Validate repository boundary documentation
         run: |
           test -s README.md
