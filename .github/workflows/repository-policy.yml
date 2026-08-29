@@ -19,6 +19,10 @@ jobs:
         run: |
           node .spec/tools/spec-lint.mjs
           node --test .spec/tools/spec-lint.test.mjs
+      - name: Validate SDK pin
+        run: |
+          node eng/verify-sdk-pin.mjs
+          node --test eng/verify-sdk-pin.test.mjs
       - name: Validate repository boundary documentation
         run: |
           test -s README.md
