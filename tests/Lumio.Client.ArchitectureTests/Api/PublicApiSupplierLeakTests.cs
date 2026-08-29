@@ -11,7 +11,13 @@ public sealed class PublicApiSupplierLeakTests
         "HybridCLR",
         "Serilog",
         "OpenTelemetry",
-        "System.Net.Sockets"
+        "System.Net.Sockets",
+        "System.Net.Security",
+        "System.IO.Pipelines",
+        "System.IO.Stream",
+        "System.Diagnostics.Activity",
+        "System.Diagnostics.Metrics",
+        "System.Threading.Channels"
     };
 
     [Fact]

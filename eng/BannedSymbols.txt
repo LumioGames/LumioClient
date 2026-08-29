@@ -1,0 +1,26 @@
+# Banned API for LumioClient production assemblies.
+# Format: T:Full.TypeName; message
+# File name is load-bearing: BannedApiAnalyzers only reads AdditionalFiles named BannedSymbols*.txt.
+#
+# This list bans USAGE. The design forbids some types only in public SIGNATURES; those are
+# covered by PublicApiSupplierLeakTests.BannedPrefixes instead. Deliberately not listed here:
+#   Channel<T>      - three production internals use it (connection LocalEmbedded, observability pipeline)
+#   System.IO.Stream - the Wave7 persistence filesystem adapter will need it internally
+#   SQLite Connection - no package, no type name this repo can name without inventing one
+T:UnityEngine.Object; Unity types stay in unity-adapter
+T:UnityEngine.MonoBehaviour; Unity types stay in unity-adapter
+T:UnityEngine.InputSystem.InputAction; Unity Input System stays in unity-adapter
+T:HybridCLR.RuntimeApi; HybridCLR types stay in hybridclr-adapter
+T:HybridCLR.HomologousImageMode; HybridCLR types stay in hybridclr-adapter
+T:HybridCLR.LoadImageErrorCode; HybridCLR types stay in hybridclr-adapter
+T:HybridCLR.RuntimeOptionId; HybridCLR types stay in hybridclr-adapter
+T:HybridCLR.ReversePInvokeWrapperGenerationAttribute; HybridCLR types stay in hybridclr-adapter
+T:Serilog.ILogger; Serilog stays behind observability adapters
+T:Microsoft.Extensions.Logging.ILogger; logging facades stay behind observability adapters
+T:OpenTelemetry.Trace.Tracer; OpenTelemetry stays behind observability adapters
+T:System.Diagnostics.Activity; OpenTelemetry stays behind observability adapters
+T:System.Diagnostics.Metrics.Meter; OpenTelemetry stays behind observability adapters
+T:System.Net.Sockets.Socket; sockets stay behind remote transport adapters
+T:System.Net.Security.SslStream; sockets stay behind remote transport adapters
+T:System.IO.Pipelines.PipeReader; sockets stay behind remote transport adapters
+T:System.IO.Pipelines.PipeWriter; sockets stay behind remote transport adapters
