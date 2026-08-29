@@ -4,7 +4,7 @@
 
 ## 状态
 
-- 阶段：未实现
+- 阶段：LocalEmbedded 环回与 WSS 远程传输已落地；LocalSplitProcess 尚未实现
 - 优先级：P0
 - 架构基线：`LGE-V1.2-2026-08-27`
 - 公共契约来源：[`Wire 与 Transport`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#73-wire-与-transport)、[`Host Profile、平台与能力`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#10-host-profile平台与能力)
@@ -75,13 +75,19 @@
 
 ## 验证
 
-- 单元测试：Endpoint 校验、队列容量、代次隔离、重复关闭和取消竞态。
-- 正向 Fixture：Remote、LocalSplitProcess、LocalEmbedded 传输相同 Envelope。
-- 失败 Fixture：截断、超长、重复、乱序、重放、QueueFull、半连接断开和迟到回调。
+- 单元测试：Endpoint 格式校验与 URI 脱敏、队列容量、代次隔离、重复关闭和取消竞态。
+- 正向 Fixture：LocalEmbedded 与 WSS 远程传输走同一 `IClientConnection` 语义收发同一段字节。
+- 远程传输（`modules/connection/tests/Transport/`）：子协议三段位序与协商结果、一 WS 消息 = 一帧、超限在分配前拒绝、断线三源（对端 close 帧 / `ReceiveAsync` 抛出 / 空闲截止）、通道认证拒绝时零应用数据、凭据不入应用数据与事件。
+- 失败 Fixture：超长、QueueFull、半连接断开和迟到回调。截断与乱序 Fixture 需要真实 Envelope 字节，随消费通道落地后补。
 - Fault 测试：延迟、抖动、丢包、乱序、重复、断线和重连组合可复现。
 - 保真测试：LocalEmbedded 与 Remote 经过相同 Codec、权限、大小限制和 Tick 交付边界。
+- 远程侧的监听端只以测试夹具形式存在于 `tests/Transport/`；其跑绿不代表已与真实 DS 联调。
 
 ## 目录
 
-- 当前仅包含本 README；尚未创建实现工程或选择 Transport 库。
+- `src/Public/`：稳定公共面——`IClientConnection`、`IClientConnectionFactory`、`ClientEndpoint`、`EncodedFrame`、`ConnectionEvent`、`ITransportFaultPolicy`。
+- `src/Internal/`：`State/` 生命周期状态机、`Queues/` 有界 ingress/egress、`Faults/` Fault Decorator、`Protocol/` 编解码适配位、`Transport/LocalEmbedded/` 与 `Transport/WebSocket/` 两条通道。
+- `tests/`：`Contract/` 公共面与 Endpoint 契约、`Unit/` 状态机、`Fault/` 故障注入、`Transport/` 远程传输与 loopback WS 夹具。
+- 远程通道走 BCL `ClientWebSocket`，零新增 NuGet；`Socket` / `TcpClient` / `NetworkStream` / `SslStream` / `PipeReader` / `PipeWriter` 由 `eng/BannedSymbols.txt` 在构建期拦住。
+- `Transport/WebSocket/` 下的 `WebSocketClientConnectionFactory` 与 `WebSocketTransportOptions` 虽是 public，落点仍限定在该目录，成因见 `.spec/decisions/0003-a1-client-wss-access-landing-sites.md` 裁决三。
 - 具体第三方 Adapter 必须位于本模块内部边界，不能把其类型暴露给其他模块。

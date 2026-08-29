@@ -21,6 +21,8 @@ T:OpenTelemetry.Trace.Tracer; OpenTelemetry stays behind observability adapters
 T:System.Diagnostics.Activity; OpenTelemetry stays behind observability adapters
 T:System.Diagnostics.Metrics.Meter; OpenTelemetry stays behind observability adapters
 T:System.Net.Sockets.Socket; sockets stay behind remote transport adapters
+T:System.Net.Sockets.TcpClient; sockets stay behind remote transport adapters
+T:System.Net.Sockets.NetworkStream; sockets stay behind remote transport adapters
 T:System.Net.Security.SslStream; sockets stay behind remote transport adapters
 T:System.IO.Pipelines.PipeReader; sockets stay behind remote transport adapters
 T:System.IO.Pipelines.PipeWriter; sockets stay behind remote transport adapters
