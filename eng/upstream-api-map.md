@@ -1,6 +1,15 @@
 # Upstream API map
 
-Design aliases `GeneratedContract.*` and `RuntimeContract.*` are not public protocol definitions. Wave 0 maps each alias to a published type, or records an unpublished block.
+Design aliases `GeneratedContract.*` and `RuntimeContract.*` are not public protocol definitions. Each alias maps to a published type, or records why no published type covers it.
+
+The published surface is no longer out of reach: `contract-mirror/upstream` carries a
+byte-exact copy of it, pinned and hash-locked (see `contract-mirror/MIRROR.md`).
+Every alias below was re-checked against that mirror, and none of the 13 alias type
+names appears anywhere in it — so `blocked-unpublished` ("nothing is readable from
+this repo") is no longer the true reason. The rows now read
+`blocked-absent-from-published-surface`: the surface is readable, and these types are
+simply not in it. Anything that treats the two as the same block will mistake a
+vendored mirror for an unblocking event.
 
 This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Codec, or Storage.
 
@@ -15,9 +24,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-GENERATED-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -32,9 +41,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-GENERATED-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -49,9 +58,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-GENERATED-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -66,9 +75,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-GENERATED-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -83,9 +92,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-GENERATED-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -100,9 +109,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-GENERATED-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -117,9 +126,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-GENERATED-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -134,9 +143,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-RUNTIME-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -151,9 +160,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-RUNTIME-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -168,9 +177,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-RUNTIME-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -185,9 +194,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-RUNTIME-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -202,9 +211,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-RUNTIME-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -219,9 +228,9 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
       "publishedType": null,
       "packageId": null,
       "packageVersion": null,
-      "status": "blocked-unpublished",
+      "status": "blocked-absent-from-published-surface",
       "blockId": "UPSTREAM-RUNTIME-CONTRACT-API-MAP",
-      "reason": "No published LumioGameRuntime / generated-contract package is readable from this Client repo; Wave 0 stays compile-only and does not invent Envelope/Transaction/ErrorCode.",
+      "reason": "The architecture source's published surface is vendored byte-for-byte at contract-mirror/upstream (pin and scope in contract-mirror/MIRROR.md). Searching that surface for this alias's type name returns nothing, so the design alias still maps to no published type. This repo does not invent an Envelope, Transaction or ErrorCode to close the gap.",
       "affectedTasks": [
         "w2-connection-localembedded-transport",
         "w3-handshake-generated-contract-adapter",
@@ -231,6 +240,15 @@ This repo must not define a second Envelope, Transaction, ErrorCode, Schema, Cod
         "w6-localembedded-fidelity-suite"
       ]
     }
-  ]
+  ],
+  "mirror": {
+    "root": "contract-mirror/upstream",
+    "lockFile": "contract-mirror/contract-mirror.sha256",
+    "sourceRepository": "LumioGameEngineArchitecture",
+    "sourceCommit": "a206e2ca29be81a80f143d0251f4d525beadbf44",
+    "baselineId": "LGE-V1.4-2026-08-27",
+    "verifyCommand": "bash eng/verify-contract-mirror.sh",
+    "driftReportCommand": "bash eng/sync-contract-mirror.sh --source <path> --check"
+  }
 }
 ```

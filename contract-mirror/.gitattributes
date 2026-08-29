@@ -1,0 +1,6 @@
+# The mirror must survive the round trip byte for byte. The repository root sets
+# `* text=auto`, which lets git renormalize line endings on checkout and would
+# silently break equality with the upstream pin on a platform whose defaults
+# differ. Treat every vendored file as opaque bytes.
+upstream/** -text
+contract-mirror.sha256 text eol=lf

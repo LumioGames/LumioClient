@@ -22,6 +22,12 @@ public sealed class UpstreamApiMapTests
         "RuntimeContract.PredictionReconcilePlan"
     };
 
+    private static readonly string[] BlockedStatuses =
+    {
+        "blocked-unpublished",
+        "blocked-absent-from-published-surface"
+    };
+
     [Fact]
     public void EveryDesignAliasMapsToOnePublishedType()
     {
@@ -40,7 +46,10 @@ public sealed class UpstreamApiMapTests
             }
             else
             {
-                Assert.Equal("blocked-unpublished", row.Status);
+                // "nothing readable here" and "readable, but the type is not in it" are
+                // different blocks. Keeping them distinct is what stops a vendored mirror
+                // from being mistaken for an unblocking event.
+                Assert.Contains(row.Status, BlockedStatuses);
                 Assert.True(string.IsNullOrEmpty(row.PublishedType));
                 Assert.False(string.IsNullOrWhiteSpace(row.BlockId));
                 Assert.False(string.IsNullOrWhiteSpace(row.Reason));
@@ -59,10 +68,32 @@ public sealed class UpstreamApiMapTests
         Assert.True(pin.TryGetProperty("status", out _));
         Assert.True(pin.TryGetProperty("hashes", out var hashes));
         Assert.Equal(JsonValueKind.Array, hashes.ValueKind);
-        if (pin.GetProperty("status").GetString() == "unpublished")
+
+        var status = pin.GetProperty("status").GetString();
+        if (status == "unpublished")
         {
             Assert.Equal(0, hashes.GetArrayLength());
+            return;
         }
+
+        Assert.Equal("mirrored", status);
+        Assert.Matches("^[0-9a-f]{40}$", pin.GetProperty("sourceCommit").GetString());
+
+        // The pin points at the lock rather than restating every mirrored hash: one
+        // truth, one place to update when the mirror is re-vendored.
+        var lockRelative = pin.GetProperty("lockFile").GetString()!;
+        var lockPath = System.IO.Path.Combine(RepoRoot.Path, lockRelative);
+        Assert.True(File.Exists(lockPath), lockRelative + " must exist");
+
+        var recorded = hashes.EnumerateArray()
+            .Single(h => h.GetProperty("path").GetString() == lockRelative)
+            .GetProperty("sha256").GetString();
+        var actual = Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(lockPath))).ToLowerInvariant();
+        Assert.Equal(actual, recorded);
+
+        var corpusRoot = System.IO.Path.Combine(RepoRoot.Path, pin.GetProperty("corpusRoot").GetString()!);
+        Assert.True(Directory.Exists(corpusRoot), "mirrored fixture corpus must exist");
     }
 
     [Fact]
