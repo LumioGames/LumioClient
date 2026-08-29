@@ -10,7 +10,32 @@ namespace Lumio.Client.Connection.Tests.Transport;
 
 public sealed class WebSocketTransportTests
 {
-    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(10);
+    /// <summary>
+    /// 等待终态 / 帧到达的上限。
+    /// <b>这是高负载宿主的稳定性容错，不构成任何性能预算或延迟 SLA。</b>
+    /// 需要性能断言时另立专门测试，不要把这个数字读成「系统允许 30s 内响应」。
+    /// </summary>
+    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// 除「空闲截止」那条以外，所有用例都必须把空闲截止推得足够远。
+    /// 否则在负载高的宿主上，一次卡顿就会让空闲截止先于被测来源触发，
+    /// 把断言顶成另一种终态——那是测试隔离缺陷，不是被测行为。
+    /// <b>同样是宿主容错，不构成性能预算或延迟 SLA。</b>
+    /// 生产默认值是 <see cref="WebSocketTransportOptions.DefaultIdleTimeoutSeconds"/>（15s，provisional），
+    /// 由 OptionsRejectCapAboveRegisteredCeiling 单独守住。
+    /// </summary>
+    private static WebSocketTransportOptions LongIdle
+    {
+        get
+        {
+            return new WebSocketTransportOptions(
+                WebSocketTransportOptions.DefaultMaxMessageBytes,
+                WebSocketTransportOptions.DefaultReceiveBufferBytes,
+                TimeSpan.FromMinutes(5));
+        }
+    }
+
     private static readonly byte[] Credential = { 0xDE, 0xAD, 0xBE, 0xEF, 0x11, 0x22 };
     private static readonly byte[] Nonce = { 0xFE, 0xED, 0xFA, 0xCE };
 
@@ -81,7 +106,7 @@ public sealed class WebSocketTransportTests
     public async Task NegotiatedSubProtocolIsExactlyMvpV0()
     {
         await using var server = LoopbackWebSocketServer.Start(new LoopbackWebSocketScript());
-        var connection = Connect(server, WebSocketTransportOptions.Default, out var created);
+        var connection = Connect(server, LongIdle, out var created);
         using (connection)
         {
             Assert.True(created.Succeeded);
@@ -97,7 +122,7 @@ public sealed class WebSocketTransportTests
     public async Task SubProtocolOfferCarriesThreeSegmentsInDeclaredOrder()
     {
         await using var server = LoopbackWebSocketServer.Start(new LoopbackWebSocketScript());
-        var connection = Connect(server, WebSocketTransportOptions.Default, out _);
+        var connection = Connect(server, LongIdle, out _);
         using (connection)
         {
             connection.Start();
@@ -112,8 +137,8 @@ public sealed class WebSocketTransportTests
 
             // base64url 必须去 padding：'=' 不是 RFC 7230 token 合法字符，
             // ClientWebSocket.Options.AddSubProtocol 会直接拒绝。
-            Assert.DoesNotContain('=', segments[1]);
-            Assert.DoesNotContain('=', segments[2]);
+            Assert.DoesNotContain("=", segments[1], StringComparison.Ordinal);
+            Assert.DoesNotContain("=", segments[2], StringComparison.Ordinal);
         }
     }
 
@@ -122,7 +147,7 @@ public sealed class WebSocketTransportTests
     {
         await using var server = LoopbackWebSocketServer.Start(
             new LoopbackWebSocketScript { NegotiateSubProtocol = false });
-        var connection = Connect(server, WebSocketTransportOptions.Default, out _);
+        var connection = Connect(server, LongIdle, out _);
         using (connection)
         {
             connection.Start();
@@ -145,7 +170,7 @@ public sealed class WebSocketTransportTests
             OutboundMessages = payloads
         });
 
-        var connection = Connect(server, WebSocketTransportOptions.Default, out _);
+        var connection = Connect(server, LongIdle, out _);
         using (connection)
         {
             connection.Start();
@@ -172,7 +197,7 @@ public sealed class WebSocketTransportTests
             OutboundMessages = new[] { payload }
         });
 
-        var options = new WebSocketTransportOptions(65536, 8192, TimeSpan.FromSeconds(30));
+        var options = new WebSocketTransportOptions(65536, 8192, TimeSpan.FromMinutes(5));
         var connection = Connect(server, options, out _);
         using (connection)
         {
@@ -196,7 +221,7 @@ public sealed class WebSocketTransportTests
     public async Task RoundTripsFrameThroughRealWebSocket()
     {
         await using var server = LoopbackWebSocketServer.Start(new LoopbackWebSocketScript());
-        var connection = Connect(server, WebSocketTransportOptions.Default, out _);
+        var connection = Connect(server, LongIdle, out _);
         using (connection)
         {
             connection.Start();
@@ -226,7 +251,7 @@ public sealed class WebSocketTransportTests
             OutboundMessages = new[] { payload }
         });
 
-        var options = new WebSocketTransportOptions(cap, receiveBuffer, TimeSpan.FromSeconds(30));
+        var options = new WebSocketTransportOptions(cap, receiveBuffer, TimeSpan.FromMinutes(5));
         var connection = Connect(server, options, out _);
         using (connection)
         {
@@ -252,11 +277,25 @@ public sealed class WebSocketTransportTests
         Assert.Equal(1048576, WebSocketTransportOptions.MaxAllowedMessageBytes);
         Assert.Equal(65536, WebSocketTransportOptions.DeclaredMaxFragmentBytes);
 
+        // 生产默认空闲截止（provisional，与 LumioServer TransportProvisionalDefaults 对齐）。
+        // 测试里放宽到 5 分钟只是宿主容错，这里守住真实默认值不被顺手改掉。
+        Assert.Equal(15, WebSocketTransportOptions.DefaultIdleTimeoutSeconds);
+        Assert.Equal(TimeSpan.FromSeconds(15), WebSocketTransportOptions.Default.IdleTimeout);
+
         var over = new WebSocketTransportOptions(1048577, 8192, TimeSpan.FromSeconds(15));
         Assert.False(over.TryValidate(out string reason));
         Assert.Contains("1048576", reason, StringComparison.Ordinal);
 
         Assert.True(WebSocketTransportOptions.Default.TryValidate(out _));
+    }
+
+    [Fact]
+    public void FactoryRejectsOptionsAboveTheRegisteredCeiling()
+    {
+        var over = new WebSocketTransportOptions(1048577, 8192, TimeSpan.FromSeconds(15));
+        var thrown = Assert.Throws<ArgumentException>(
+            () => new WebSocketClientConnectionFactory(over));
+        Assert.Contains("1048576", thrown.Message, StringComparison.Ordinal);
     }
 
     // ---------- 断线检测三源 ----------
@@ -266,13 +305,13 @@ public sealed class WebSocketTransportTests
     {
         await using var server = LoopbackWebSocketServer.Start(
             new LoopbackWebSocketScript { Kind = LoopbackScriptKind.CloseNormallyImmediately });
-        var connection = Connect(server, WebSocketTransportOptions.Default, out _);
+        var connection = Connect(server, LongIdle, out _);
         using (connection)
         {
             connection.Start();
             var seen = DrainUntilTerminal(connection, Patience);
 
-            var terminal = Assert.Single(seen.Where(e => e.Terminal));
+            var terminal = Assert.Single(seen, e => e.Terminal);
             Assert.Equal(ConnectionEventKind.Disconnected, terminal.Kind);
         }
     }
@@ -282,13 +321,13 @@ public sealed class WebSocketTransportTests
     {
         await using var server = LoopbackWebSocketServer.Start(
             new LoopbackWebSocketScript { Kind = LoopbackScriptKind.AbortTcpWithoutCloseFrame });
-        var connection = Connect(server, WebSocketTransportOptions.Default, out _);
+        var connection = Connect(server, LongIdle, out _);
         using (connection)
         {
             connection.Start();
             var seen = DrainUntilTerminal(connection, Patience);
 
-            var terminal = Assert.Single(seen.Where(e => e.Terminal));
+            var terminal = Assert.Single(seen, e => e.Terminal);
             Assert.Equal(ConnectionEventKind.Faulted, terminal.Kind);
         }
     }
@@ -305,7 +344,7 @@ public sealed class WebSocketTransportTests
             connection.Start();
             var seen = DrainUntilTerminal(connection, Patience);
 
-            var terminal = Assert.Single(seen.Where(e => e.Terminal));
+            var terminal = Assert.Single(seen, e => e.Terminal);
             Assert.Equal(ConnectionEventKind.Disconnected, terminal.Kind);
             Assert.True(connection.IdleDeadlineExpired, "空闲截止必须是可诊断的断线来源");
         }
@@ -318,18 +357,18 @@ public sealed class WebSocketTransportTests
     {
         await using var server = LoopbackWebSocketServer.Start(
             new LoopbackWebSocketScript { Kind = LoopbackScriptKind.RejectWithPolicyViolation });
-        var connection = Connect(server, WebSocketTransportOptions.Default, out _);
+        var connection = Connect(server, LongIdle, out _);
         using (connection)
         {
             connection.Start();
             var seen = DrainUntilTerminal(connection, Patience);
 
-            var terminal = Assert.Single(seen.Where(e => e.Terminal));
+            var terminal = Assert.Single(seen, e => e.Terminal);
             Assert.Equal(ConnectionEventKind.Faulted, terminal.Kind);
             Assert.True(connection.ChannelAuthRejected);
 
             // 此前零字节应用数据 —— 两个方向都断言。
-            Assert.Equal(0, connection.ApplicationBytesReceived);
+            Assert.Equal(0L, connection.ApplicationBytesReceived);
             Assert.Empty(server.ApplicationBytesReceived);
             Assert.DoesNotContain(seen, e => e.Kind == ConnectionEventKind.FrameReceived);
         }
@@ -341,7 +380,7 @@ public sealed class WebSocketTransportTests
     public async Task CredentialsNeverReachApplicationBytesEventsOrRenderings()
     {
         await using var server = LoopbackWebSocketServer.Start(new LoopbackWebSocketScript());
-        var connection = Connect(server, WebSocketTransportOptions.Default, out _);
+        var connection = Connect(server, LongIdle, out _);
         using (connection)
         {
             connection.Start();
@@ -354,6 +393,16 @@ public sealed class WebSocketTransportTests
             Assert.NotEmpty(outbound);
             Assert.False(ContainsSequence(outbound, Credential), "凭据字节泄漏进出站应用数据");
             Assert.False(ContainsSequence(outbound, Nonce), "nonce 字节泄漏进出站应用数据");
+
+            // 出站是 Text 帧，泄漏更可能以**拼写**形态发生（base64url / base64 / hex / 十进制），
+            // 只扫原始字节抓不到。四种拼写一并扫。
+            string outboundText = Encoding.ASCII.GetString(outbound);
+            Assert.DoesNotContain(
+                MvpChannelAuth.ToBase64Url(Credential), outboundText, StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                MvpChannelAuth.ToBase64Url(Nonce), outboundText, StringComparison.Ordinal);
+            ClientEndpointTests.AssertNoSecretSpelling(outboundText, Credential);
+            ClientEndpointTests.AssertNoSecretSpelling(outboundText, Nonce);
 
             // ② 入站方向：drain 出的事件与其渲染都不得回显凭据。
             foreach (var evt in seen)
@@ -377,7 +426,7 @@ public sealed class WebSocketTransportTests
     public async Task LifecycleMatchesLocalEmbeddedSemantics()
     {
         await using var server = LoopbackWebSocketServer.Start(new LoopbackWebSocketScript());
-        var connection = Connect(server, WebSocketTransportOptions.Default, out _);
+        var connection = Connect(server, LongIdle, out _);
         using (connection)
         {
             // 未 Start 不可发送。

@@ -73,7 +73,7 @@ internal sealed class LoopbackWebSocketServer : IAsyncDisposable
         TcpClient? client = null;
         try
         {
-            client = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
+            client = await _listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
             NetworkStream stream = client.GetStream();
             string request = await ReadRequestHeadersAsync(stream, ct).ConfigureAwait(false);
             RequestSubProtocolHeader = ReadHeader(request, "Sec-WebSocket-Protocol");
@@ -196,7 +196,7 @@ internal sealed class LoopbackWebSocketServer : IAsyncDisposable
         byte[] one = new byte[1];
         while (!builder.ToString().EndsWith("\r\n\r\n", StringComparison.Ordinal))
         {
-            int read = await stream.ReadAsync(one, 0, 1, ct).ConfigureAwait(false);
+            int read = await stream.ReadAsync(one.AsMemory(0, 1), ct).ConfigureAwait(false);
             if (read == 0)
             {
                 break;
@@ -210,11 +210,11 @@ internal sealed class LoopbackWebSocketServer : IAsyncDisposable
 
     private static async Task WriteHandshakeResponseAsync(Stream stream, string key, string? chosen, CancellationToken ct)
     {
-        string accept;
-        using (var sha1 = SHA1.Create())
-        {
-            accept = Convert.ToBase64String(sha1.ComputeHash(Encoding.ASCII.GetBytes(key + HandshakeGuid)));
-        }
+        // RFC 6455 §4.2.2 把 SHA-1 写死在握手里，没有替代算法可选；这里不是安全用途，
+        // 只是复现协议要求的 Sec-WebSocket-Accept 计算，且只存在于测试夹具中。
+#pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
+        string accept = Convert.ToBase64String(SHA1.HashData(Encoding.ASCII.GetBytes(key + HandshakeGuid)));
+#pragma warning restore CA5350
 
         var response = new StringBuilder()
             .Append("HTTP/1.1 101 Switching Protocols\r\n")
@@ -228,7 +228,7 @@ internal sealed class LoopbackWebSocketServer : IAsyncDisposable
 
         response.Append("\r\n");
         byte[] bytes = Encoding.ASCII.GetBytes(response.ToString());
-        await stream.WriteAsync(bytes, 0, bytes.Length, ct).ConfigureAwait(false);
+        await stream.WriteAsync(bytes.AsMemory(), ct).ConfigureAwait(false);
         await stream.FlushAsync(ct).ConfigureAwait(false);
     }
 

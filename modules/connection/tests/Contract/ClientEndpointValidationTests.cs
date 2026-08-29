@@ -32,7 +32,6 @@ public sealed class ClientEndpointValidationTests
     [InlineData("", "empty")]
     [InlineData("   ", "empty")]
     [InlineData("not-a-uri", "absolute")]
-    [InlineData("/session", "absolute")]
     [InlineData("http://host/session", "scheme")]
     [InlineData("https://host/session", "scheme")]
     [InlineData("file:///tmp/x", "scheme")]
@@ -40,6 +39,16 @@ public sealed class ClientEndpointValidationTests
     {
         Assert.False(Endpoint(uri).TryValidate(out string reason));
         Assert.Contains(expectedReasonFragment, reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RelativePathIsRejected()
+    {
+        // 拒绝理由随宿主而异：Windows 上 "/session" 解析不成绝对 URI，
+        // Unix 上 .NET 会把它当成绝对文件路径解析成 file:///session（于是栽在 scheme 上）。
+        // 断言只认「被拒 + 理由指向 uri」，不锁死平台差异。
+        Assert.False(Endpoint("/session").TryValidate(out string reason));
+        Assert.Contains("uri", reason, StringComparison.OrdinalIgnoreCase);
     }
 
     [Theory]
@@ -68,6 +77,21 @@ public sealed class ClientEndpointValidationTests
         var zero = new ClientEndpoint("ws://host/session", Credential, Nonce, TimeSpan.Zero);
         Assert.False(zero.TryValidate(out string reason));
         Assert.Contains("timeout", reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void EmptyCredentialOrNonceIsRejected()
+    {
+        // 空段会让 Sec-WebSocket-Protocol 的三段位序塌成非法 offer，必须在拨号前挡住。
+        var noCredential = new ClientEndpoint(
+            "ws://host/session", ReadOnlyMemory<byte>.Empty, Nonce, TimeSpan.FromSeconds(5));
+        Assert.False(noCredential.TryValidate(out string credentialReason));
+        Assert.Contains("credential", credentialReason, StringComparison.OrdinalIgnoreCase);
+
+        var noNonce = new ClientEndpoint(
+            "ws://host/session", Credential, ReadOnlyMemory<byte>.Empty, TimeSpan.FromSeconds(5));
+        Assert.False(noNonce.TryValidate(out string nonceReason));
+        Assert.Contains("nonce", nonceReason, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

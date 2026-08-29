@@ -88,18 +88,16 @@ public sealed class CredentialContainmentTests
         }
     }
 
-    // 【本测试当前是绊线，不是遏制证明 —— 读之前先看清它证明了什么】
+    // 【读之前先看清它证明了什么 —— 这条走的是 LocalEmbedded 路径】
     //
-    // T-00002 只扩公共面、不实现任何传输逻辑，`ClientConnectionFactory.Create` 因此
-    // 不消费 request.Endpoint：凭据字节根本没有进入连接的对象图。所以下面这几条断言
-    // 在**当前实现下不可能失败**，它们证明不了「凭据被正确遏制」。
+    // LocalEmbedded 工厂不消费 request.Endpoint：凭据字节根本没有进入这条链路的对象图，
+    // 所以下面几条断言在 LocalEmbedded 上不可能失败。它守的是「LocalEmbedded 将来若开始
+    // 消费 endpoint，凭据不得随之泄漏」这条回归线，不是本轮的遏制证明。
     //
-    // 真正带电的遏制断言只有 ClientEndpointTests.ToStringRedactsCredentialAndNonce
-    // （把 Credential.Length 换成字节内容会立刻变红）。
-    //
-    // 保留本测试的意义是：T-00003 把 endpoint 接进 WSS 传输、凭据开始真实流经这条
-    // 链路的那一刻，它会自动变成有效断言。**T-00003 必须重新核验这组断言确实会红**
-    // （例如故意把凭据拼进出站帧，确认本测试失败），否则它会退化成虚假安全感。
+    // T-00003 已把 endpoint 接进真实的 WS 传输，**带电的那条遏制断言在**
+    // Transport/WebSocketTransportTests.CredentialsNeverReachApplicationBytesEventsOrRenderings：
+    // 它同时断言出站应用数据（服务端侧实测字节）、入站事件字节与全部渲染。
+    // 该测试已按 T-00003 要求做过对照组核验：把凭据拼进出站帧后它确实变红。
     [Fact]
     public void CredentialsDoNotReachDrainedEventsOrSnapshot_TripwireForRemoteTransport()
     {
