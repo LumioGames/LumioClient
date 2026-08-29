@@ -39,6 +39,7 @@ namespace Lumio.Client.Session
         private int _replicaStages;
         private int _predictionStages;
         private int _runtimeCalls;
+        private int _drainLimit = ClientConnectionCreateRequest.DefaultDrainLimit;
         private ulong _snapshotSequence;
 
         public ClientSession(ClientSessionDependencies dependencies)
@@ -79,7 +80,7 @@ namespace Lumio.Client.Session
             {
                 if (_connection != null && !_machine.IsTerminal)
                 {
-                    var buffer = new ConnectionEvent[16];
+                    var buffer = new ConnectionEvent[_drainLimit];
                     int n = _connection.DrainEvents(buffer);
                     for (int i = 0; i < n; i++)
                     {
@@ -176,8 +177,10 @@ namespace Lumio.Client.Session
             _presented = false;
             _snapshotSequence = 0;
             _machine.TryEnter(ClientSessionState.Connecting);
+            var connectionRequest = new ClientConnectionCreateRequest(generation, ClientConnectionCreateRequest.DefaultEventCapacity);
+            _drainLimit = connectionRequest.DrainLimit;
             ClientConnectionCreateResult created = _dependencies.Connections.Create(
-                new ClientConnectionCreateRequest(generation, 32),
+                in connectionRequest,
                 out _connection);
             if (!created.Succeeded)
             {

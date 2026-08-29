@@ -4,6 +4,27 @@ namespace Lumio.Client.Connection.Tests.Fault;
 
 public sealed class ConnectionQueueFullTests
 {
+    // 公共面的 IngressFull_NeverOverwritesValidatedFrame 已覆盖同一语义，本用例补的是
+    // 队列本体这一层：容量满时 TryEnqueue 必须返回 false，且既有事件的顺序与内容不被动过。
+    [Fact]
+    public void FullEventQueue_RejectsWithoutSilentlyOverwriting()
+    {
+        var queue = new ConnectionEventQueue(2);
+        var first = new ConnectionEvent(ConnectionEventKind.Started, new ConnectionGeneration(1), false);
+        var second = new ConnectionEvent(ConnectionEventKind.FrameReceived, new ConnectionGeneration(1), false);
+        var overflow = new ConnectionEvent(ConnectionEventKind.Closed, new ConnectionGeneration(1), true);
+
+        Assert.True(queue.TryEnqueue(in first));
+        Assert.True(queue.TryEnqueue(in second));
+        Assert.False(queue.TryEnqueue(in overflow));
+        Assert.Equal(2, queue.Count);
+
+        var drained = new ConnectionEvent[4];
+        Assert.Equal(2, queue.Drain(drained));
+        Assert.Equal(ConnectionEventKind.Started, drained[0].Kind);
+        Assert.Equal(ConnectionEventKind.FrameReceived, drained[1].Kind);
+    }
+
     [Fact]
     public void IngressFull_NeverOverwritesValidatedFrame()
     {
