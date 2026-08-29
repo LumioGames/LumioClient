@@ -9,9 +9,21 @@ namespace Lumio.Client.Connection
 
     public sealed class ClientConnectionFactory : IClientConnectionFactory
     {
+        private readonly ITransportFaultPolicy _faultPolicy;
+
+        public ClientConnectionFactory()
+            : this(new PassThroughFaultPolicy())
+        {
+        }
+
+        public ClientConnectionFactory(ITransportFaultPolicy faultPolicy)
+        {
+            _faultPolicy = faultPolicy ?? new PassThroughFaultPolicy();
+        }
+
         public ClientConnectionCreateResult Create(in ClientConnectionCreateRequest request, out IClientConnection connection)
         {
-            var owner = new OwnerConnection(request.Generation, request.EventCapacity);
+            var owner = new OwnerConnection(request.Generation, request.EventCapacity, _faultPolicy);
             connection = owner;
             return new ClientConnectionCreateResult(true, new LocalEmbeddedLoopback(owner));
         }
@@ -24,11 +36,17 @@ namespace Lumio.Client.Connection
         private readonly LocalEmbeddedTransport _transport;
         private readonly ConnectionSendQueue _sendQueue;
         private readonly ReplayWindow _inboundReplay = new ReplayWindow();
-        private readonly FaultDecoratingTransport _faults = new FaultDecoratingTransport(new PassThroughFaultPolicy());
+        private readonly FaultDecoratingTransport _faults;
         private ulong _inboundSequence;
 
         public OwnerConnection(ConnectionGeneration generation, int eventCapacity)
+            : this(generation, eventCapacity, new PassThroughFaultPolicy())
         {
+        }
+
+        public OwnerConnection(ConnectionGeneration generation, int eventCapacity, ITransportFaultPolicy faultPolicy)
+        {
+            _faults = new FaultDecoratingTransport(faultPolicy ?? new PassThroughFaultPolicy());
             int capacity = Math.Max(eventCapacity, 1);
             _machine = new ConnectionStateMachine(generation, capacity);
             _transport = new LocalEmbeddedTransport(Math.Max(capacity, 4));
