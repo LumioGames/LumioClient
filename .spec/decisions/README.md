@@ -30,3 +30,4 @@
 |------|------|------|
 | [`0001`](0001-capability-modules-and-session-orchestration.md) | 按能力模块组织客户端并由 session 统一编排 | 生效 |
 | [`0002`](0002-cross-module-gates-and-state-ownership.md) | 冻结跨模块提交点、启动门与可变状态所有权 | 生效 |
+| [`0003`](0003-a1-client-wss-access-landing-sites.md) | A1 客户端接入的三项落点:凭据随创建请求、Envelope 构造留在组装根、WSS 进既有 connection 工程 | 生效 |
