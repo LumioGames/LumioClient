@@ -18,6 +18,16 @@ internal static class Allowlist
     }
 }
 
+internal static class MsBuildPath
+{
+    // ProjectReference Include 一律用反斜杠分隔。反斜杠在非 Windows 上不是目录分隔符,
+    // 直接交给 GetFileNameWithoutExtension 会原样返回整串而不报错——静默失败。
+    public static string ProjectName(string include)
+    {
+        return System.IO.Path.GetFileNameWithoutExtension(include.Replace('\\', '/'));
+    }
+}
+
 internal static class CsprojGraph
 {
     public static Dictionary<string, string[]> ProductionEdges()
@@ -36,7 +46,7 @@ internal static class CsprojGraph
                        ?? System.IO.Path.GetFileNameWithoutExtension(csproj);
             var refs = xml.Descendants()
                 .Where(e => e.Name.LocalName == "ProjectReference")
-                .Select(e => System.IO.Path.GetFileNameWithoutExtension(e.Attribute("Include")!.Value))
+                .Select(e => MsBuildPath.ProjectName(e.Attribute("Include")!.Value))
                 .ToArray();
             result[name] = refs;
         }

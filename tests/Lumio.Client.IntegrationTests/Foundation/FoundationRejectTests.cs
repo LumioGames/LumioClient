@@ -1,5 +1,5 @@
-using Lumio.Client.Session;
 using Lumio.Client.IntegrationTests.Support;
+using Lumio.Client.Session;
 
 namespace Lumio.Client.IntegrationTests.Foundation;
 
