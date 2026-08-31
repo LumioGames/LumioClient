@@ -9,6 +9,7 @@
     <AssemblyName>Lumio.Client.Bot.Host</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\LumioGameEngineArchitecture\engine\managed\Lumio.Engine.SDK\Lumio.Engine.SDK.csproj" />
     <ProjectReference Include="..\src\Lumio.Client.Bot.csproj" />
     <ProjectReference Include="..\..\session\src\Lumio.Client.Session.csproj" />
     <ProjectReference Include="..\..\input\src\Lumio.Client.Input.csproj" />

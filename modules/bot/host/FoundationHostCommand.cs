@@ -7,6 +7,7 @@ using Lumio.Client.Persistence;
 using Lumio.Client.Prediction;
 using Lumio.Client.Replica;
 using Lumio.Client.Session;
+using Lumio.Engine.SDK;
 
 namespace Lumio.Client.Bot.Host;
 
@@ -23,6 +24,7 @@ public static class FoundationHostCommand
         bool foundation = false;
         string transport = "local-embedded";
         string fixture = "foundation-happy-path";
+        string? engineNativePath = null;
         if (args != null)
         {
             for (int i = 0; i < args.Length; i++)
@@ -40,6 +42,11 @@ public static class FoundationHostCommand
                 {
                     i++;
                     fixture = args[i];
+                }
+                else if (string.Equals(args[i], "--engine-native", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    i++;
+                    engineNativePath = args[i];
                 }
             }
         }
@@ -62,6 +69,13 @@ public static class FoundationHostCommand
         if (!string.Equals(fixture, "foundation-happy-path", StringComparison.OrdinalIgnoreCase))
         {
             return 4;
+        }
+
+        using var engine = engineNativePath is null ? null : LumioEngineSdk.LoadNative(engineNativePath);
+        if (engine is not null)
+        {
+            engine.Ping();
+            Console.WriteLine($"ENGINE_NATIVE path={engine.NativePath} buildId={engine.BuildId} abiHash={engine.AbiHash} binarySha256={engine.BinarySha256}");
         }
 
         var connections = new CapturingConnectionFactory();

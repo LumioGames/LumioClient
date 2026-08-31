@@ -61,6 +61,9 @@
           "Lumio.Client.Prediction": "[1.0.0, )",
           "Lumio.Client.Replica": "[1.0.0, )"
         }
+      },
+      "lumio.engine.nativeloader": {
+        "type": "Project"
       }
     }
   }
