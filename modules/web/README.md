@@ -52,7 +52,8 @@
 
 - 契约缺失/损坏 → waiting 状态,不连接。
 - 消息缺字段、坏 hash、revision 回退、未知 messageType → errors 记录(取契约 errorCodes 词表内的码)+ status="error"。
-- 服务器 Error / HandshakeAck 拒绝 → errors 记录 + status="error"。
+- 服务器 Error → errors 记录(码取自契约 errorCodes 词表) + status="error"。
+- HandshakeAck accepted=false → errors 记录 + status="error";此路径无服务器 Error 消息,页面以本页合成码 handshake_rejected 标注(页面本地状态码,有意不进 wire 词表,不外发)。
 - 本里程碑无重试与恢复路径。
 
 ## 可观测性
