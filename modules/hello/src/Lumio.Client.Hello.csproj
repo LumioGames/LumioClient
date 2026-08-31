@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Lumio.Client.Hello</RootNamespace>
+    <AssemblyName>Lumio.Client.Hello</AssemblyName>
+    <Description>LumioClient hello world wire client and headless bot module</Description>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <!-- net10.0 has System.Threading.Channels in-box; Directory.Build.targets injects the
+         PackageReference into every production project, which NU1510 flags as prunable here.
+         The injection belongs to shared build logic, so silence it locally instead. -->
+    <NoWarn>$(NoWarn);NU1510</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumio.Client.Hello.Tests" />
+  </ItemGroup>
+</Project>

@@ -26,6 +26,9 @@
   <Project Path="modules/bot/src/Lumio.Client.Bot.csproj" />
   <Project Path="modules/bot/tests/Lumio.Client.Bot.Tests.csproj" />
   <Project Path="modules/bot/host/Lumio.Client.Bot.Host.csproj" />
+  <Project Path="modules/hello/src/Lumio.Client.Hello.csproj" />
+  <Project Path="modules/hello/tests/Lumio.Client.Hello.Tests.csproj" />
+  <Project Path="modules/hello/host/Lumio.Client.HelloBot.csproj" />
   <Project Path="tests/Lumio.Client.ArchitectureTests/Lumio.Client.ArchitectureTests.csproj" />
   <Project Path="tests/Lumio.Client.IntegrationTests/Lumio.Client.IntegrationTests.csproj" />
   <Project Path="eng/upstream-contract-smoke/Lumio.Client.UpstreamContractSmoke.csproj" />

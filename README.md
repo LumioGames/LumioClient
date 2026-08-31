@@ -40,6 +40,8 @@ Client 不拥有 Server 权威状态、Server Wall Clock、Release Pool 或 Voxe
 | [`unity-adapter`](modules/unity-adapter/README.md) | Unity Host、Renderer 和平台 Input 边界 | P1 |
 | [`hybridclr-adapter`](modules/hybridclr-adapter/README.md) | Unity Client C# 热更加载与 Capability Provider | P1 |
 | [`bot`](modules/bot/README.md) | Headless Host、Input/Presentation Adapter 和 Bot Driver | P1 |
+| [`hello`](modules/hello/README.md) | MS-00002 Hello World 独立 Headless Bot 与 hello-wire-v1 客户端 | P1 |
+| [`web`](modules/web/README.md) | MS-00002 浏览器 Hello World 静态客户端(纯静态 ES module) | P1 |
 
 ## 职责
 

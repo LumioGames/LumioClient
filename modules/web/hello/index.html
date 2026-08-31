@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lumio Hello Client</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./hello-client.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Lumio Hello World · Browser Client</h1>
+
+    <section class="card" id="status-card">
+      <h2>状态</h2>
+      <p><span id="status" class="pill">running</span> <span id="status-detail"></span></p>
+      <dl id="meta" class="meta"></dl>
+    </section>
+
+    <section class="card">
+      <h2>Received Deltas</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>sender</th><th>sequence</th><th>tickId</th><th>revision</th><th>payloadSha256</th><th>latencyMs</th>
+          </tr>
+        </thead>
+        <tbody id="deltas">
+          <tr id="deltas-empty"><td colspan="6" class="empty">尚未收到 Delta</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Errors</h2>
+      <ul id="errors">
+        <li id="errors-empty" class="empty">无</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

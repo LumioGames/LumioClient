@@ -43,7 +43,8 @@
       "Lumio.Client.Session",
       "Lumio.Client.Input",
       "Lumio.Client.Observability"
-    ]
+    ],
+    "Lumio.Client.Hello": []
   },
   "compositionRoot": {
     "Lumio.Client.Bot.Host": [
