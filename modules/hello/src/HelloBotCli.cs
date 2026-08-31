@@ -92,6 +92,7 @@ public static class HelloBotCli
 
             HelloWireClient? client = null;
             bool ok = false;
+            bool resultWritten = false;
             string reason = string.Empty;
             try
             {
@@ -140,6 +141,13 @@ public static class HelloBotCli
                     ["detail"] = "command delivered",
                 });
 
+                // 场景已完整（收到 browser Delta + 自己的命令已送达）：立即写出成功 result，
+                // 让集成启动器可以进入 shutdown 编排（启动器等到本文件后才向 server 发
+                // shutdown，server 关闭会话后本进程才退出——若把 result 留到关闭之后会
+                // 与启动器形成循环等待）。后续对 server 关闭的等待只决定退出码。
+                await WriteResultAsync(parsed.ResultPath, success: ToSuccess(parsed.Role, client), failure: null).ConfigureAwait(false);
+                resultWritten = true;
+
                 using (var closeTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
                 {
                     closeTimeout.CancelAfter(TimeSpan.FromMilliseconds(scenarioTimeoutMs));
@@ -175,10 +183,13 @@ public static class HelloBotCli
                 }
             }
 
-            await WriteResultAsync(
-                parsed.ResultPath,
-                success: ok && client is not null ? ToSuccess(parsed.Role, client) : null,
-                failure: !ok ? new ResultFailure(parsed.Role, client?.SessionId, reason, client?.Errors ?? Array.Empty<WireError>()) : null).ConfigureAwait(false);
+            if (!resultWritten)
+            {
+                await WriteResultAsync(
+                    parsed.ResultPath,
+                    success: ok && client is not null ? ToSuccess(parsed.Role, client) : null,
+                    failure: !ok ? new ResultFailure(parsed.Role, client?.SessionId, reason, client?.Errors ?? Array.Empty<WireError>()) : null).ConfigureAwait(false);
+            }
 
             var receivedBySender = new Dictionary<string, object?>(StringComparer.Ordinal);
             if (client is not null)
