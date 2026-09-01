@@ -77,6 +77,8 @@ jobs:
             unity-adapter
             hybridclr-adapter
             bot
+            hello
+            web
           )
 
           module_count="$(find modules -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LumioProduction>false</LumioProduction>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Lumio.Client.HelloBot</RootNamespace>
+    <AssemblyName>Lumio.Client.HelloBot</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\src\Lumio.Client.Hello.csproj" />
+  </ItemGroup>
+</Project>
