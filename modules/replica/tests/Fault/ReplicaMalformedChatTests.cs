@@ -67,50 +67,53 @@ public sealed class ReplicaMalformedChatTests
     }
 
     [Fact]
-    public void TombstonedSenderEventDoesNotAppend()
+    public void TombstonedSenderRoomEventStillAppends()
     {
         ReplicaChatConsumer consumer = GameplayWireFixtures.CreateConsumer(ReplicaClientKind.Browser);
         Assert.True(GameplayWireFixtures.AdmitRoom(
             consumer.World,
             extras: new[] { GameplayWireFixtures.Entity("101", "bot", "room-01", 1, 1, 0, tombstoned: true) }).Accepted);
         Assert.True(GameplayWireFixtures.CommitEmptySnapshot(consumer.Replica));
-        ReplicaStageStatus staged = GameplayWireFixtures.StageJson(
+        Assert.True(GameplayWireFixtures.CommitJson(
             consumer.Replica,
             ReplicaUpdateKind.Delta,
             GameplayWireFixtures.ContractChatDelta(),
             2,
             10,
             0,
-            1,
-            out _);
-        Assert.Equal(ReplicaStageStatus.Rejected, staged);
-        Assert.Empty(consumer.ChatWindow);
-        Assert.Equal("tombstoned", consumer.World.LastRejectCode);
+            1));
+        Assert.Single(consumer.ChatWindow);
+        Assert.Equal(1UL, consumer.ChatWindow[0].MessageId);
+        Assert.Equal(1UL, consumer.ChatWindow[0].RoomSequence);
+        Assert.Equal("101", consumer.ChatWindow[0].SenderNetEntityId);
         Assert.Equal(
             ReplicaQueryStatus.Tombstoned,
             consumer.World.QueryAttribute(new ReplicaAttributeQuery("client-replica", "room-01", "101", "EntityIdentity.entityType")).Status);
     }
 
     [Fact]
-    public void InvisibleSenderEventDoesNotAppend()
+    public void InvisibleSenderRoomEventStillAppends()
     {
         ReplicaChatConsumer consumer = GameplayWireFixtures.CreateConsumer(ReplicaClientKind.Browser);
         Assert.True(GameplayWireFixtures.AdmitRoom(
             consumer.World,
             extras: new[] { GameplayWireFixtures.Entity("101", "bot", "room-01", 1, 1, 0, inAoi: false) }).Accepted);
         Assert.True(GameplayWireFixtures.CommitEmptySnapshot(consumer.Replica));
-        ReplicaStageStatus staged = GameplayWireFixtures.StageJson(
+        Assert.True(GameplayWireFixtures.CommitJson(
             consumer.Replica,
             ReplicaUpdateKind.Delta,
             GameplayWireFixtures.ContractChatDelta(),
             2,
             10,
             0,
-            1,
-            out _);
-        Assert.Equal(ReplicaStageStatus.Rejected, staged);
-        Assert.Empty(consumer.ChatWindow);
-        Assert.Equal("unauthorized", consumer.World.LastRejectCode);
+            1));
+        Assert.Single(consumer.ChatWindow);
+        Assert.Equal(1UL, consumer.ChatWindow[0].MessageId);
+        Assert.Equal(1UL, consumer.ChatWindow[0].RoomSequence);
+        Assert.Equal("101", consumer.ChatWindow[0].SenderNetEntityId);
+        Assert.Equal(
+            ReplicaQueryStatus.Invisible,
+            consumer.World.QueryAttribute(new ReplicaAttributeQuery("client-replica", "room-01", "101", "EntityIdentity.entityType")).Status);
     }
 
     private static void AssertRejected(

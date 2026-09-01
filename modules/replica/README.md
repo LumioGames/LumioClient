@@ -16,7 +16,7 @@
 - 维护客户端 Baseline、SnapshotId、ReplicationRevision、Sequence 和 Mapping Hash 视图。
 - 使用生成 Mapping 将 Server Component 投影到允许的 Client Component/Field。
 - 维护 `NetEntityId -> LocalEntityId` 映射、Destroy Tombstone 和 provisional ID 确认重映射。
-- 为每个连接维护独立 `ReplicaWorld`：准入绑定、可见实体投影、client-replica Attribute Query、以及仅经权威事务提交后追加的 Room 聊天呈现。
+- 为每个连接维护独立 `ReplicaWorld`：准入绑定、可见实体投影、client-replica Attribute Query、以及仅经权威事务提交后追加的 Room 聊天呈现（投递闸是 C-1 信封/序号，不是接收方 sender AOI）。
 - 检测 Gap、未知 Baseline、旧 Revision、重复/迟到 Delta、Mapping 不匹配和 Tombstone 冲突。
 - 输出 Apply Result、BaselineAck/DeltaAck 或明确的 ResyncRequest 原因。
 

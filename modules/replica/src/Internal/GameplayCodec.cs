@@ -16,8 +16,6 @@ namespace Lumio.Client.Replica
         public const string BlockOrderViolation = "block_order_violation";
         public const string StateBlockKindMismatch = "state_block_kind_mismatch";
         public const string ChatTextTooLong = "chat_text_too_long";
-        public const string Unauthorized = "unauthorized";
-        public const string Tombstoned = "tombstoned";
     }
 
     internal static class GameplayMappings
