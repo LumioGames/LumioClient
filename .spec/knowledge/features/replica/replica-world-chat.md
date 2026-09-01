@@ -13,11 +13,12 @@ metadata:
 ## 设计
 
 - **绑定与查询**：准入写入 C-2 五元组；`SelfLookup` 与 `QueryAttribute` 只读本连接副本。client-replica 仅可读 `replication=replicated` 且当前可见的 AttributeId；persist-only / server-only 返回 `invisible`。
-- **聊天呈现**：`chat.event` 仅经 Delta 追加到客户端聊天窗（MessageId、Room sequence、sender NetEntityId、text）。FullSnapshot 清空窗口，不回放历史。畸形/未授权事件在 Stage 拒绝，零可见突变。
+- **聊天呈现**：`chat.event` 仅经 Delta 追加到客户端聊天窗（MessageId、Room sequence、sender NetEntityId、text）。C-1 `visibility=room` 只校验信封/摘要/序号/text 上限；接收方是否已 Admit 发送者、发送者是否 InAoi / tombstoned 只影响 Attribute Query，不决定是否入窗。FullSnapshot 清空窗口，不回放历史。畸形信封在 Stage 拒绝，零可见突变。
 - **消费者**：`ReplicaChatConsumer` 区分 Browser 与 Bot；二者不得共享 World/Entity 引用。浏览器静态页 `modules/web/chat/` 只渲染已接受事件，不扩展 hello-wire-v1。
 - **契约**：字段真值是架构仓 C-1 / C-2 JSON。测试定位 `origin/main` 文件，本仓不内嵌协议副本。
 
 ## 相关
 
 - [`0005`](../../../decisions/0005-chat-event-netentityid-string-bridge.md)
+- [`0006`](../../../decisions/0006-room-chat-event-not-gated-by-receiver-aoi.md)
 - [`replica` 模块 README](../../../../modules/replica/README.md)

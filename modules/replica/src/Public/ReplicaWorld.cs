@@ -228,33 +228,13 @@ namespace Lumio.Client.Replica
                 }
 
                 DecodedChatEvent chat = block.ChatEvent;
+                // Room-scoped chat.event: C-1 envelope/sequence only. Receiver AOI/admission does not gate delivery.
                 bool sequenceOk = _lastRoomSequence == 0UL
                     ? chat.RoomSequence > 0UL
                     : chat.RoomSequence == _lastRoomSequence + 1UL;
                 if (!sequenceOk || chat.MessageId <= _lastMessageId)
                 {
                     rejectCode = GameplayReject.BadEnvelope;
-                    _lastRejectCode = rejectCode;
-                    return false;
-                }
-
-                if (!_entities.TryGetValue(chat.SenderNetEntityId, out EntityRecord sender))
-                {
-                    rejectCode = GameplayReject.Unauthorized;
-                    _lastRejectCode = rejectCode;
-                    return false;
-                }
-
-                if (sender.Tombstoned)
-                {
-                    rejectCode = GameplayReject.Tombstoned;
-                    _lastRejectCode = rejectCode;
-                    return false;
-                }
-
-                if (!sender.InAoi)
-                {
-                    rejectCode = GameplayReject.Unauthorized;
                     _lastRejectCode = rejectCode;
                     return false;
                 }
