@@ -64,6 +64,8 @@ function setError(code, detail) {
 // ---------- 契约驱动的字段核对(文法:const:/enum:/u64/epoch-ms/sha256-hex/bool/string/array:) ----------
 
 const sha256HexPattern = /^[0-9a-f]{64}$/;
+// 渲染上限：收到的 delta 记录完整保留在 window.__lumioResult，表格只保留最新这些行。
+const MAX_RENDERED_DELTAS = 200;
 
 function makeValidator(contract) {
   const roles = Array.isArray(contract.roles) ? contract.roles : [];
@@ -307,7 +309,12 @@ async function main() {
       td.textContent = String(cell);
       row.append(td);
     }
-    dom.deltas.append(row);
+    // Newest first: prepend so the live view shows the latest delta on top, and cap
+    // the table so an unbounded stream cannot grow the DOM without limit.
+    dom.deltas.prepend(row);
+    while (dom.deltas.rows.length > MAX_RENDERED_DELTAS) {
+      dom.deltas.deleteRow(-1);
+    }
   }
 
   async function handleMessage(text) {
