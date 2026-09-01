@@ -12,7 +12,7 @@ public sealed class ToolchainPolicyTests
         Assert.True(File.Exists(path), "global.json must exist");
         using var doc = JsonDocument.Parse(File.ReadAllText(path));
         var sdk = doc.RootElement.GetProperty("sdk");
-        Assert.Equal("10.0.111", sdk.GetProperty("version").GetString());
+        Assert.Equal("10.0.400", sdk.GetProperty("version").GetString());
         Assert.Equal("disable", sdk.GetProperty("rollForward").GetString());
         Assert.False(sdk.GetProperty("allowPrerelease").GetBoolean());
     }
