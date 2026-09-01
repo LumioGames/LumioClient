@@ -26,8 +26,7 @@ metadata:
 | 文档 | 一句话 |
 |------|--------|
 | [`features/_TEMPLATE.md`](features/_TEMPLATE.md) | 新功能文档模板——新增功能记录时照此建,放对 领域 / 模块 |
-
-> 暂无正式功能文档。
+| [`features/replica/replica-world-chat.md`](features/replica/replica-world-chat.md) | ReplicaWorld 绑定/查询与 Room 聊天呈现——改 Replica 实体映射、Attribute Query 或 Browser/Bot 聊天窗时查 |
 
 ## lessons(经验教训 · 复发问题暂存区)
 

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lumio Room Chat · Browser</title>
+</head>
+<body>
+  <main>
+    <h1>Room Chat</h1>
+    <ol id="chat"></ol>
+  </main>
+  <script type="module">
+    import { appendAcceptedEvent, applyFullSnapshot, createChatWindow, formatLine } from "./chat-window.js";
+
+    const windowState = createChatWindow();
+    const list = document.getElementById("chat");
+
+    function render() {
+      list.replaceChildren();
+      for (const line of windowState.lines) {
+        const item = document.createElement("li");
+        item.textContent = formatLine(line);
+        list.append(item);
+      }
+    }
+
+    window.__lumioChat = {
+      window: windowState,
+      appendAcceptedEvent: (event) => {
+        const accepted = appendAcceptedEvent(windowState, event);
+        render();
+        return accepted;
+      },
+      applyFullSnapshot: () => {
+        applyFullSnapshot(windowState);
+        render();
+      },
+    };
+  </script>
+</body>
+</html>

@@ -76,7 +76,10 @@ public sealed class CloseOrchestratorCallTests
         public SpyReplica(List<string> order)
         {
             _order = order;
+            World = new ReplicaWorld();
         }
+
+        public IReplicaWorld World { get; }
 
         public ReplicaStageResult StageAuthority(in ReplicaStageRequest request, out ReplicaStageHandle stageHandle, out ReadOnlyMemory<byte> applyPlan)
         {

@@ -32,3 +32,4 @@
 | [`0002`](0002-cross-module-gates-and-state-ownership.md) | 冻结跨模块提交点、启动门与可变状态所有权 | 生效 |
 | [`0003`](0003-a1-client-wss-access-landing-sites.md) | A1 客户端接入的三项落点:凭据随创建请求、Envelope 构造留在组装根、WSS 进既有 connection 工程 | 生效 |
 | [`0004`](0004-architecture-source-readonly-mirror.md) | 架构源发布物以整目录只读镜像消费,硬校验与上游同步拆成两条独立检查 | 生效 |
+| [`0005`](0005-chat-event-netentityid-string-bridge.md) | Chat event sender NetEntityId 以十进制字符串桥接到 C-2 不透明身份 | 生效 |

@@ -15,6 +15,7 @@
 - 提供 PureHeadless/NativeHeadless Client Host 和 Bot 生命周期。
 - 消费 Game 提供的版本化 Scenario，生成确定性或脚本化平台无关 Input Sample。
 - 提供无渲染 Presentation Adapter，消费 Presentation Diff 并提取业务断言/统计。
+- Headless Bot 作为独立 `ReplicaChatConsumer`（`ReplicaClientKind.Bot`）消费本连接 `ReplicaWorld` 的聊天呈现；不得与 Browser 或其他 Bot 共享 World/Entity 引用。
 - 批量创建和关闭独立 `ClientReplicaSession`，执行并发资源预算和速率限制。
 - 驱动连接、握手、复制、预测、Resync、Reconnect、Replay 和 Failure Bundle 测试链路。
 - 输出结构化 Bot Result、Command Stream、Client State Hash 和首差异证据。

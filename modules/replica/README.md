@@ -4,10 +4,10 @@
 
 ## 状态
 
-- 阶段：未实现
+- 阶段：R-00349 ReplicaWorld 映射与 Room 聊天呈现已落地；Snapshot/Delta 事务路径沿用既有 Stage/Observe
 - 优先级：P0
 - 架构基线：`LGE-V1.2-2026-08-27`
-- 公共契约来源：[`World、ECS 与 Entity`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#5-worldecs-与-entity)、[`Replication、Prediction 与网络`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#7-replicationprediction-与网络)
+- 公共契约来源：[`World、ECS 与 Entity`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#5-worldecs-与-entity)、[`Replication、Prediction 与网络`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#7-replicationprediction-与网络)、架构仓 `engine/wire/gameplay-command-envelope-v1.json`（C-1）、`engine/wire/entity-binding-and-query-v1.json`（C-2）
 - 内部设计：[`LumioClient 模块化架构`](../../docs/specs/2026-08-27-client-module-architecture-design.md)
 
 ## 责任
@@ -16,6 +16,7 @@
 - 维护客户端 Baseline、SnapshotId、ReplicationRevision、Sequence 和 Mapping Hash 视图。
 - 使用生成 Mapping 将 Server Component 投影到允许的 Client Component/Field。
 - 维护 `NetEntityId -> LocalEntityId` 映射、Destroy Tombstone 和 provisional ID 确认重映射。
+- 为每个连接维护独立 `ReplicaWorld`：准入绑定、可见实体投影、client-replica Attribute Query、以及仅经权威事务提交后追加的 Room 聊天呈现。
 - 检测 Gap、未知 Baseline、旧 Revision、重复/迟到 Delta、Mapping 不匹配和 Tombstone 冲突。
 - 输出 Apply Result、BaselineAck/DeltaAck 或明确的 ResyncRequest 原因。
 
@@ -24,8 +25,10 @@
 - 不保存或修改 Server 权威 World，不要求 Server/Client Component 对称。
 - 不定义 Snapshot、Delta、Entity、Mapping 或 Component Schema。
 - 不维护 Prediction History，不决定如何回滚或重放未确认命令。
-- 不直接操作 GameObject、Renderer、UI、DOM 或其他表现对象。
+- 不直接操作 GameObject、Renderer、UI、DOM 或其他表现对象。聊天窗是客户端呈现副本，不是 ReplicaWorld 权威，也不从 FullSnapshot 恢复历史。
 - 不手写 Component 布局、字段 ID、MessageId 或 Canonical Serializer。
+- 不扩展 hello-wire-v1；玩法信封与绑定/查询以 C-1 / C-2 JSON 为字段真值。
+- 不直连服务端数据库、不共享跨连接 World/Entity 存储、不对服务端 Entity 行使客户端权威。
 
 ## 公共入口与出口
 
@@ -82,5 +85,6 @@
 
 ## 目录
 
-- 当前仅包含本 README；尚未创建实现工程。
-- 生成 Contract 和 Mapping 是外部构建产物，不复制到本模块维护第二套源文件。
+- `src/Public`：`IClientReplica`、`ReplicaWorld` / `IReplicaWorld`、`ReplicaChatConsumer`。
+- `src/Internal`：权威 Stage/Observe、C-1 信封解码、C-2 属性声明表。
+- 生成 Contract 和 Mapping 是外部构建产物，不复制到本模块维护第二套源文件。C-1/C-2 living wire JSON 由测试定位架构仓 `origin/main`，本仓不内嵌协议副本。

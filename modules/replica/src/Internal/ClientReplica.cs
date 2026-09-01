@@ -9,11 +9,17 @@ namespace Lumio.Client.Replica
         private readonly ReplicaStageLedger _ledger = new ReplicaStageLedger();
         private readonly ReplicaGapDetector _gaps = new ReplicaGapDetector();
         private readonly TombstoneEvidence _tombstones = new TombstoneEvidence();
+        private readonly ReplicaWorld _world = new ReplicaWorld();
         private ReplicaStageStatus _lastStageStatus;
 
         public ClientReplica(IReplicaMapper mapper)
         {
             _mapper = mapper;
+        }
+
+        public IReplicaWorld World
+        {
+            get { return _world; }
         }
 
         public ReplicaStageResult StageAuthority(
@@ -43,6 +49,11 @@ namespace Lumio.Client.Replica
             if (classification != ReplicaGapClassification.Accept)
             {
                 return CompleteStage(ReplicaStageStatus.RequiresResync);
+            }
+
+            if (!_world.TryValidateAuthority(in request, out _))
+            {
+                return CompleteStage(ReplicaStageStatus.Rejected);
             }
 
             ReplicaMappingContext context = new ReplicaMappingContext(
@@ -103,6 +114,7 @@ namespace Lumio.Client.Replica
             }
 
             _metadata.ApplyCommitted(in staged);
+            _world.ApplyCommitted(in staged);
             if (staged.Kind == ReplicaUpdateKind.FullSnapshot)
             {
                 _tombstones.Replace(staged.TombstoneEntityIds);
@@ -120,6 +132,7 @@ namespace Lumio.Client.Replica
         {
             _ledger.Clear();
             _tombstones.Clear();
+            _world.Reset();
             _metadata.Reset(request.Generation);
             _lastStageStatus = ReplicaStageStatus.None;
             return new ReplicaResetResult(true);

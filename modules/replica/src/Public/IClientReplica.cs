@@ -4,6 +4,8 @@ namespace Lumio.Client.Replica
 {
     public interface IClientReplica
     {
+        IReplicaWorld World { get; }
+
         ReplicaStageResult StageAuthority(
             in ReplicaStageRequest request,
             out ReplicaStageHandle stageHandle,

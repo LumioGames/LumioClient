@@ -64,8 +64,10 @@
 ## 验证
 
 - `node --check modules/web/hello/hello-client.js`(语法级)。
-- 行为验证由集成阶段 Playwright 实测(真实 server + 契约文件),本仓不做浏览器自动化测试。
+- `node --test modules/web/chat/chat-window.test.mjs`(Room 聊天呈现)。
+- Hello 行为验证由集成阶段 Playwright 实测(真实 server + 契约文件),本仓不做浏览器自动化测试。
 
 ## 目录
 
 - `hello/`:`index.html`、`hello-client.js`、`style.css`。纯静态,任意静态文件服务器可直接托管。
+- `chat/`:Room 聊天浏览器呈现（R-00349）。`chat-window.js` 只追加已接受的 `chat.event` 字段，FullSnapshot 清空窗口且不回放历史；不扩展 hello-wire-v1。验证：`node --test modules/web/chat/chat-window.test.mjs`。
