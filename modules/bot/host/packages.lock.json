@@ -64,6 +64,12 @@
       },
       "lumio.engine.nativeloader": {
         "type": "Project"
+      },
+      "lumio.engine.sdk": {
+        "type": "Project",
+        "dependencies": {
+          "Lumio.Engine.NativeLoader": "[1.0.0, )"
+        }
       }
     }
   }
