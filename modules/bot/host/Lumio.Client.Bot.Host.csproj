@@ -8,8 +8,23 @@
     <RootNamespace>Lumio.Client.Bot.Host</RootNamespace>
     <AssemblyName>Lumio.Client.Bot.Host</AssemblyName>
   </PropertyGroup>
+  <PropertyGroup>
+    <LumioEngineSdkCsproj Condition="'$(LUMIO_ENGINE_SDK_PROJECT)' != ''">$(LUMIO_ENGINE_SDK_PROJECT)</LumioEngineSdkCsproj>
+    <LumioArchRoot Condition="'$(LumioArchRoot)' == ''">$(LUMIO_ARCH_ROOT)</LumioArchRoot>
+    <LumioArchRoot Condition="'$(LumioArchRoot)' == ''">$(LUMIO_ARCHITECTURE_ROOT)</LumioArchRoot>
+    <LumioEngineSdkCsproj Condition="'$(LumioEngineSdkCsproj)' == '' AND '$(LumioArchRoot)' != ''">$(LumioArchRoot)/engine/managed/Lumio.Engine.SDK/Lumio.Engine.SDK.csproj</LumioEngineSdkCsproj>
+    <LumioEngineSdkInRepo>$(MSBuildThisFileDirectory)../../../LumioGameEngineArchitecture/engine/managed/Lumio.Engine.SDK/Lumio.Engine.SDK.csproj</LumioEngineSdkInRepo>
+    <LumioEngineSdkSibling>$(MSBuildThisFileDirectory)../../../../LumioGameEngineArchitecture/engine/managed/Lumio.Engine.SDK/Lumio.Engine.SDK.csproj</LumioEngineSdkSibling>
+    <LumioEngineSdkCsproj Condition="'$(LumioEngineSdkCsproj)' == '' AND Exists('$(LumioEngineSdkInRepo)')">$(LumioEngineSdkInRepo)</LumioEngineSdkCsproj>
+    <LumioEngineSdkCsproj Condition="'$(LumioEngineSdkCsproj)' == '' AND Exists('$(LumioEngineSdkSibling)')">$(LumioEngineSdkSibling)</LumioEngineSdkCsproj>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(LumioEngineSdkCsproj)' != '' AND Exists('$(LumioEngineSdkCsproj)')">
+    <DefineConstants>$(DefineConstants);LUMIO_ENGINE_SDK</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(LumioEngineSdkCsproj)' != '' AND Exists('$(LumioEngineSdkCsproj)')">
+    <ProjectReference Include="$(LumioEngineSdkCsproj)" />
+  </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\LumioGameEngineArchitecture\engine\managed\Lumio.Engine.SDK\Lumio.Engine.SDK.csproj" />
     <ProjectReference Include="..\src\Lumio.Client.Bot.csproj" />
     <ProjectReference Include="..\..\session\src\Lumio.Client.Session.csproj" />
     <ProjectReference Include="..\..\input\src\Lumio.Client.Input.csproj" />

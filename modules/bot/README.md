@@ -49,7 +49,7 @@ Scenario 只声明 RequiredCapabilities 和业务步骤；Bot Host 使用与生�
 ## 依赖
 
 - 允许依赖：[`session`](../session/README.md)、[`input`](../input/README.md)、[`observability`](../observability/README.md)。
-- 外部依赖：Game 提供的 Scenario/Assertion Contract、Host Clock 和命令行/测试运行器。
+- 外部依赖：Game 提供的 Scenario/Assertion Contract、Host Clock 和命令行/测试运行器。`Lumio.Client.Bot.Host` 对架构仓 `Lumio.Engine.SDK` 的引用经 `LUMIO_ARCH_ROOT` / `LUMIO_ENGINE_SDK_PROJECT` 或相对仓根发现；缺失时 Host 仍可编译，不把兄弟仓当成 slnx 测试硬依赖。
 - 禁止依赖：Connection/Replica/Prediction 内部实现、Unity/HybridCLR、Server 实现或 Gameplay 源码反向引用。
 - Bot 通过 `session` 公共 API 使用核心能力，不能为测试暴露生产模块内部方法。
 

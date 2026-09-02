@@ -7,7 +7,9 @@ using Lumio.Client.Persistence;
 using Lumio.Client.Prediction;
 using Lumio.Client.Replica;
 using Lumio.Client.Session;
+#if LUMIO_ENGINE_SDK
 using Lumio.Engine.SDK;
+#endif
 
 namespace Lumio.Client.Bot.Host;
 
@@ -71,12 +73,16 @@ public static class FoundationHostCommand
             return 4;
         }
 
+#if LUMIO_ENGINE_SDK
         using var engine = engineNativePath is null ? null : LumioEngineSdk.LoadNative(engineNativePath);
         if (engine is not null)
         {
             engine.Ping();
             Console.WriteLine($"ENGINE_NATIVE path={engine.NativePath} buildId={engine.BuildId} abiHash={engine.AbiHash} binarySha256={engine.BinarySha256}");
         }
+#else
+        _ = engineNativePath;
+#endif
 
         var connections = new CapturingConnectionFactory();
         var ingress = new InputSampleIngress(16);
