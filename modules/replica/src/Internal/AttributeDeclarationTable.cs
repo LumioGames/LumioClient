@@ -62,6 +62,12 @@ namespace Lumio.Client.Replica
                     "ephemeral",
                     "replicated",
                     "room-public"),
+                ["EntityIdentity.unmappedMark"] = new AttributeDeclaration(
+                    "EntityIdentity.unmappedMark",
+                    "utf8-string",
+                    "ephemeral",
+                    "replicated",
+                    "room-public"),
                 ["EntityIdentity.restrictedFlag"] = new AttributeDeclaration(
                     "EntityIdentity.restrictedFlag",
                     "utf8-string",

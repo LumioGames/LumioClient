@@ -13,9 +13,11 @@ metadata:
 ## 设计
 
 - **绑定与查询**：准入写入 C-2 五元组；`SelfLookup` 与 `QueryAttribute` 只读本连接副本。client-replica 仅可读 `replication=replicated` 且当前可见的 AttributeId；persist-only / server-only 返回 `invisible`。
-- **聊天呈现**：`chat.event` 仅经 Delta 追加到客户端聊天窗（MessageId、Room sequence、sender NetEntityId、text）。C-1 `visibility=room` 只校验信封/摘要/序号/text 上限；接收方是否已 Admit 发送者、发送者是否 InAoi / tombstoned 只影响 Attribute Query，不决定是否入窗。FullSnapshot 清空窗口，不回放历史。畸形信封在 Stage 拒绝，零可见突变。
-- **消费者**：`ReplicaChatConsumer` 区分 Browser 与 Bot；二者不得共享 World/Entity 引用。浏览器静态页 `modules/web/chat/` 只渲染已接受事件，不扩展 hello-wire-v1。
-- **契约**：字段真值是架构仓 C-1 / C-2 JSON。测试定位 `origin/main` 文件，本仓不内嵌协议副本。
+- **FullSnapshot 重建**：重连/首入只按 C-1 `stateBlocks` 重建实体集。活体 Room 恰好一块 `entity.identity`（LumioBinV1 数组 `{netEntityId, entityType, unmappedMark}`，按 id 升序）。实体集等于解码 records，不是空 `[]` 占位；空数组表示零活体。旧代次实体不残留。聊天窗清空且不回放历史。重建成功后再启用输入。
+- **ConnectionSuperseded**：旧连接收到该通知后停止输入并记录 `connection_superseded`，不自动重连。
+- **聊天呈现**：`chat.event` 仅经 Delta 追加到客户端聊天窗（MessageId、Room sequence、sender NetEntityId、text）。C-1 `visibility=room` 只校验信封/摘要/序号/text 上限；接收方是否已 Admit 发送者、发送者是否 InAoi / tombstoned 只影响 Attribute Query，不决定是否入窗。畸形信封在 Stage 拒绝，零可见突变。
+- **消费者**：`ReplicaChatConsumer` 区分 Browser 与 Bot；二者不得共享 World/Entity 引用。浏览器静态页 `modules/web/chat/` 只渲染已接受事件，不扩展 hello-wire-v1。Bot 发言节奏由 Client Timer Manager 适配层消费 NativeCore `tickFrame`（N=5），每次触发提交一条 `chat.input`；Client 不自建定时器或绑定表。
+- **契约**：字段真值是架构仓 C-1 / C-2 JSON。测试定位架构仓检出，本仓不内嵌协议副本。C-1 `entity.identity` 金样在 replica 测试夹具中按 pin `997bcf3` 校验编码器。
 
 ## 相关
 

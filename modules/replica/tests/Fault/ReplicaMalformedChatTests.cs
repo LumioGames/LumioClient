@@ -73,7 +73,15 @@ public sealed class ReplicaMalformedChatTests
         Assert.True(GameplayWireFixtures.AdmitRoom(
             consumer.World,
             extras: new[] { GameplayWireFixtures.Entity("101", "bot", "room-01", 1, 1, 0, tombstoned: true) }).Accepted);
-        Assert.True(GameplayWireFixtures.CommitEmptySnapshot(consumer.Replica));
+        Assert.True(GameplayWireFixtures.CommitJson(
+            consumer.Replica,
+            ReplicaUpdateKind.FullSnapshot,
+            GameplayWireFixtures.IdentityCensus((1, "player", ""), (101, "bot", "")),
+            1,
+            10,
+            0,
+            0,
+            new ulong[] { 101UL }));
         Assert.True(GameplayWireFixtures.CommitJson(
             consumer.Replica,
             ReplicaUpdateKind.Delta,
@@ -98,7 +106,7 @@ public sealed class ReplicaMalformedChatTests
         Assert.True(GameplayWireFixtures.AdmitRoom(
             consumer.World,
             extras: new[] { GameplayWireFixtures.Entity("101", "bot", "room-01", 1, 1, 0, inAoi: false) }).Accepted);
-        Assert.True(GameplayWireFixtures.CommitEmptySnapshot(consumer.Replica));
+        Assert.True(GameplayWireFixtures.CommitCensus(consumer.Replica, (1, "player", "")));
         Assert.True(GameplayWireFixtures.CommitJson(
             consumer.Replica,
             ReplicaUpdateKind.Delta,
@@ -112,7 +120,7 @@ public sealed class ReplicaMalformedChatTests
         Assert.Equal(1UL, consumer.ChatWindow[0].RoomSequence);
         Assert.Equal("101", consumer.ChatWindow[0].SenderNetEntityId);
         Assert.Equal(
-            ReplicaQueryStatus.Invisible,
+            ReplicaQueryStatus.NonExistent,
             consumer.World.QueryAttribute(new ReplicaAttributeQuery("client-replica", "room-01", "101", "EntityIdentity.entityType")).Status);
     }
 

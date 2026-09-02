@@ -23,6 +23,7 @@ namespace Lumio.Client.Replica
         public const string ChatInput = "chat.input";
         public const string ChatEvent = "chat.event";
         public const string ChatComponent = "chat.component";
+        public const string EntityIdentity = "entity.identity";
         public const int ChatTextMaxUtf8Bytes = 512;
         public const int MaxBlocksPerEnvelope = 4096;
         public const int MaxFrameBytes = 65536;
@@ -45,6 +46,12 @@ namespace Lumio.Client.Replica
             if (mappingId == ChatComponent)
             {
                 kind = "componentState";
+                return true;
+            }
+
+            if (mappingId == EntityIdentity)
+            {
+                kind = "state";
                 return true;
             }
 
@@ -74,14 +81,43 @@ namespace Lumio.Client.Replica
         public ulong AppliedTick { get; }
     }
 
+    internal readonly struct DecodedIdentityRecord
+    {
+        public DecodedIdentityRecord(ulong netEntityId, string entityType, string unmappedMark)
+        {
+            NetEntityId = netEntityId;
+            EntityType = entityType;
+            UnmappedMark = unmappedMark;
+        }
+
+        public ulong NetEntityId { get; }
+
+        public string EntityType { get; }
+
+        public string UnmappedMark { get; }
+    }
+
     internal readonly struct DecodedGameplayBlock
     {
         public DecodedGameplayBlock(string mappingId, byte[] payload, DecodedChatEvent chatEvent, bool hasChatEvent)
+            : this(mappingId, payload, chatEvent, hasChatEvent, Array.Empty<DecodedIdentityRecord>(), false)
+        {
+        }
+
+        public DecodedGameplayBlock(
+            string mappingId,
+            byte[] payload,
+            DecodedChatEvent chatEvent,
+            bool hasChatEvent,
+            DecodedIdentityRecord[] identityRecords,
+            bool hasIdentity)
         {
             MappingId = mappingId;
             Payload = payload;
             ChatEvent = chatEvent;
             HasChatEvent = hasChatEvent;
+            IdentityRecords = identityRecords ?? Array.Empty<DecodedIdentityRecord>();
+            HasIdentity = hasIdentity;
         }
 
         public string MappingId { get; }
@@ -91,6 +127,10 @@ namespace Lumio.Client.Replica
         public DecodedChatEvent ChatEvent { get; }
 
         public bool HasChatEvent { get; }
+
+        public DecodedIdentityRecord[] IdentityRecords { get; }
+
+        public bool HasIdentity { get; }
     }
 
     internal readonly struct DecodedGameplayMessage
@@ -200,6 +240,51 @@ namespace Lumio.Client.Replica
             return true;
         }
 
+        public static bool TryDecodeConnectionSuperseded(
+            ReadOnlyMemory<byte> utf8,
+            out ReplicaConnectionSuperseded notice,
+            out string rejectCode)
+        {
+            notice = default(ReplicaConnectionSuperseded);
+            rejectCode = GameplayReject.BadEnvelope;
+            if (utf8.Length > GameplayMappings.MaxFrameBytes)
+            {
+                return false;
+            }
+
+            if (!LiteJsonParser.TryParse(utf8.Span, out LiteNode root) || root.Kind != LiteKind.Object)
+            {
+                return false;
+            }
+
+            if (!root.TryGetString("messageType", out string messageType)
+                || !string.Equals(messageType, "ConnectionSuperseded", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (!root.TryGetString("reasonCode", out string reasonCode)
+                || !string.Equals(reasonCode, "connection_superseded", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (!root.TryGetUInt64("netEntityId", out ulong netEntityId)
+                || !root.TryGetUInt64("newConnectionGeneration", out ulong newConnectionGeneration)
+                || newConnectionGeneration < 1UL)
+            {
+                return false;
+            }
+
+            notice = new ReplicaConnectionSuperseded(
+                true,
+                reasonCode,
+                netEntityId.ToString(CultureInfo.InvariantCulture),
+                newConnectionGeneration);
+            rejectCode = string.Empty;
+            return true;
+        }
+
         private static bool TryDecodeBlock(
             ReplicaUpdateKind updateKind,
             string mappingId,
@@ -253,7 +338,83 @@ namespace Lumio.Client.Replica
                 return true;
             }
 
+            if (mappingId == GameplayMappings.EntityIdentity)
+            {
+                if (!TryDecodeIdentity(payload, out DecodedIdentityRecord[] records, out rejectCode))
+                {
+                    return false;
+                }
+
+                block = new DecodedGameplayBlock(
+                    mappingId,
+                    payload,
+                    default(DecodedChatEvent),
+                    false,
+                    records,
+                    true);
+                rejectCode = string.Empty;
+                return true;
+            }
+
             block = new DecodedGameplayBlock(mappingId, payload, default(DecodedChatEvent), false);
+            rejectCode = string.Empty;
+            return true;
+        }
+
+        private static bool TryDecodeIdentity(
+            byte[] payload,
+            out DecodedIdentityRecord[] records,
+            out string rejectCode)
+        {
+            records = Array.Empty<DecodedIdentityRecord>();
+            int offset = 0;
+            if (!TryReadUInt32(payload, ref offset, out uint count))
+            {
+                rejectCode = GameplayReject.UndecodablePayload;
+                return false;
+            }
+
+            if (count == 0U)
+            {
+                rejectCode = GameplayReject.UndecodablePayload;
+                return false;
+            }
+
+            records = new DecodedIdentityRecord[count];
+            ulong previous = 0UL;
+            for (uint i = 0; i < count; i++)
+            {
+                if (!TryReadUInt64(payload, ref offset, out ulong netEntityId)
+                    || !TryReadString(payload, ref offset, out string entityType)
+                    || !TryReadString(payload, ref offset, out string unmappedMark))
+                {
+                    rejectCode = GameplayReject.UndecodablePayload;
+                    return false;
+                }
+
+                if (!string.Equals(entityType, "player", StringComparison.Ordinal)
+                    && !string.Equals(entityType, "bot", StringComparison.Ordinal))
+                {
+                    rejectCode = GameplayReject.UndecodablePayload;
+                    return false;
+                }
+
+                if (i > 0U && netEntityId <= previous)
+                {
+                    rejectCode = GameplayReject.BlockOrderViolation;
+                    return false;
+                }
+
+                previous = netEntityId;
+                records[i] = new DecodedIdentityRecord(netEntityId, entityType, unmappedMark ?? string.Empty);
+            }
+
+            if (offset != payload.Length)
+            {
+                rejectCode = GameplayReject.UndecodablePayload;
+                return false;
+            }
+
             rejectCode = string.Empty;
             return true;
         }
@@ -287,6 +448,19 @@ namespace Lumio.Client.Replica
                 text,
                 appliedTick);
             rejectCode = string.Empty;
+            return true;
+        }
+
+        private static bool TryReadUInt32(byte[] data, ref int offset, out uint value)
+        {
+            value = 0U;
+            if (offset + 4 > data.Length)
+            {
+                return false;
+            }
+
+            value = BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset, 4));
+            offset += 4;
             return true;
         }
 

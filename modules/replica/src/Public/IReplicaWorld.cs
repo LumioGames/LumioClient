@@ -14,7 +14,13 @@ namespace Lumio.Client.Replica
 
         IReadOnlyList<ReplicaChatLine> CopyChatWindow();
 
+        IReadOnlyList<ReplicaIdentityRecord> CopyIdentityRecords();
+
         int VisibleEntityCount { get; }
+
+        bool InputEnabled { get; }
+
+        ReplicaConnectionSuperseded LastConnectionSuperseded { get; }
 
         string LastRejectCode { get; }
     }
