@@ -19,6 +19,9 @@ namespace Lumio.Client.Replica
         private ReplicaBinding _self;
         private bool _hasSelf;
         private bool _hasClaim;
+        private bool _inputEnabled;
+        private bool _superseded;
+        private ReplicaConnectionSuperseded _lastSuperseded;
         private ulong _lastRoomSequence;
         private ulong _lastMessageId;
         private string _lastRejectCode = string.Empty;
@@ -183,9 +186,38 @@ namespace Lumio.Client.Replica
             return _chat.ToArray();
         }
 
+        public IReadOnlyList<ReplicaIdentityRecord> CopyIdentityRecords()
+        {
+            var records = new ReplicaIdentityRecord[_entities.Count];
+            int index = 0;
+            foreach (KeyValuePair<string, EntityRecord> pair in _entities)
+            {
+                string mark = string.Empty;
+                if (pair.Value.Attributes.TryGetValue("EntityIdentity.unmappedMark", out string value))
+                {
+                    mark = value;
+                }
+
+                records[index] = new ReplicaIdentityRecord(pair.Value.NetEntityId, pair.Value.EntityType, mark);
+                index++;
+            }
+
+            return records;
+        }
+
         public int VisibleEntityCount
         {
             get { return _entities.Count; }
+        }
+
+        public bool InputEnabled
+        {
+            get { return _inputEnabled; }
+        }
+
+        public ReplicaConnectionSuperseded LastConnectionSuperseded
+        {
+            get { return _lastSuperseded; }
         }
 
         public string LastRejectCode
@@ -200,9 +232,19 @@ namespace Lumio.Client.Replica
             _self = default(ReplicaBinding);
             _hasSelf = false;
             _hasClaim = false;
+            _inputEnabled = false;
+            _superseded = false;
+            _lastSuperseded = default(ReplicaConnectionSuperseded);
             _lastRoomSequence = 0UL;
             _lastMessageId = 0UL;
             _lastRejectCode = string.Empty;
+        }
+
+        internal void ObserveSuperseded(in ReplicaConnectionSuperseded notice)
+        {
+            _superseded = true;
+            _inputEnabled = false;
+            _lastSuperseded = notice;
         }
 
         internal bool TryValidateAuthority(in ReplicaStageRequest request, out string rejectCode)
@@ -257,15 +299,22 @@ namespace Lumio.Client.Replica
                 return;
             }
 
-            ApplyTombstones(request.TombstoneEntityIds);
             if (request.Kind == ReplicaUpdateKind.FullSnapshot)
             {
+                RebuildFromIdentity(in decoded, request.Generation);
                 _chat.Clear();
                 _lastRoomSequence = 0UL;
                 _lastMessageId = 0UL;
+                if (!_superseded)
+                {
+                    _inputEnabled = true;
+                }
+
+                ApplyTombstones(request.TombstoneEntityIds);
                 return;
             }
 
+            ApplyTombstones(request.TombstoneEntityIds);
             for (int i = 0; i < decoded.Blocks.Length; i++)
             {
                 DecodedGameplayBlock block = decoded.Blocks[i];
@@ -278,6 +327,42 @@ namespace Lumio.Client.Replica
                 _chat.Add(new ReplicaChatLine(chat.MessageId, chat.RoomSequence, chat.SenderNetEntityId, chat.Text, chat.AppliedTick));
                 _lastRoomSequence = chat.RoomSequence;
                 _lastMessageId = chat.MessageId;
+            }
+        }
+
+        private void RebuildFromIdentity(in DecodedGameplayMessage decoded, ulong generation)
+        {
+            _entities.Clear();
+            string roomId = _hasSelf ? _self.RoomId : string.Empty;
+            for (int i = 0; i < decoded.Blocks.Length; i++)
+            {
+                DecodedGameplayBlock block = decoded.Blocks[i];
+                if (!block.HasIdentity)
+                {
+                    continue;
+                }
+
+                DecodedIdentityRecord[] records = block.IdentityRecords;
+                for (int r = 0; r < records.Length; r++)
+                {
+                    DecodedIdentityRecord record = records[r];
+                    string id = record.NetEntityId.ToString(CultureInfo.InvariantCulture);
+                    var attributes = new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["EntityIdentity.entityType"] = record.EntityType,
+                        ["EntityIdentity.unmappedMark"] = record.UnmappedMark ?? string.Empty
+                    };
+                    _entities[id] = new EntityRecord(
+                        id,
+                        record.EntityType,
+                        roomId,
+                        generation,
+                        decoded.Revision,
+                        decoded.TickId,
+                        true,
+                        false,
+                        attributes);
+                }
             }
         }
 

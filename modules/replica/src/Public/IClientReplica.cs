@@ -22,6 +22,8 @@ namespace Lumio.Client.Replica
 
         ReplicaResetResult ResetForNewSession(in ReplicaResetRequest request);
 
+        bool TryObserveConnectionSuperseded(ReadOnlyMemory<byte> utf8, out ReplicaConnectionSuperseded notice);
+
         ReplicaSnapshot GetSnapshot();
     }
 

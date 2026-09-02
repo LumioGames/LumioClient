@@ -111,6 +111,13 @@ public sealed class CloseOrchestratorCallTests
             return new ReplicaResetResult(true);
         }
 
+        public bool TryObserveConnectionSuperseded(ReadOnlyMemory<byte> utf8, out ReplicaConnectionSuperseded notice)
+        {
+            _ = utf8;
+            notice = default;
+            return false;
+        }
+
         public ReplicaSnapshot GetSnapshot()
         {
             return default;

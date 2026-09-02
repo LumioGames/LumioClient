@@ -13,10 +13,80 @@ internal static class GameplayWireFixtures
     public const string ChatInputSha256 = "5dbd584f1718b8bcd0dab4abeea83169f4a990defab81a8316ed845798d92dab";
     public const string ChatComponentPayload = "0200000067670700000000000000";
     public const string ChatComponentSha256 = "ba9d631032a1ecb5c1b4723b9d9603cf29c8db92736620112cac56b0051d5259";
+    public const string IdentityTwoLivePayload = "02000000650000000000000006000000706c617965720100000061660000000000000003000000626f740100000062";
+    public const string IdentityTwoLiveSha256 = "4ae28198083875a42260bcd2c9493077c1726f351eace497c21c51f136d247b1";
 
     public static string EmptySnapshot()
     {
         return "{\"messageType\":\"FullSnapshot\",\"tickId\":0,\"revision\":0,\"stateBlocks\":[]}";
+    }
+
+    public static string ContractIdentitySnapshot()
+    {
+        return IdentitySnapshot(IdentityTwoLivePayload, IdentityTwoLiveSha256);
+    }
+
+    public static string IdentityCensus(params (ulong NetEntityId, string EntityType, string UnmappedMark)[] records)
+    {
+        (string payload, string sha) = EncodeIdentity(records);
+        return IdentitySnapshot(payload, sha, 0, 0);
+    }
+
+    public static bool CommitCensus(IClientReplica replica, params (ulong NetEntityId, string EntityType, string UnmappedMark)[] records)
+    {
+        return CommitJson(replica, ReplicaUpdateKind.FullSnapshot, IdentityCensus(records), 1, 10, 0, 0);
+    }
+
+    public static string IdentitySnapshot(string payload, string sha, ulong tickId = 7, ulong revision = 1)
+    {
+        return "{\"messageType\":\"FullSnapshot\",\"tickId\":" + tickId.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+               ",\"revision\":" + revision.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+               ",\"stateBlocks\":[" + Block("entity.identity", payload, sha) + "]}";
+    }
+
+    public static string ConnectionSupersededNotice(ulong netEntityId = 101, ulong newConnectionGeneration = 2)
+    {
+        return "{\"messageType\":\"ConnectionSuperseded\",\"reasonCode\":\"connection_superseded\",\"netEntityId\":" +
+               netEntityId.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+               ",\"newConnectionGeneration\":" +
+               newConnectionGeneration.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
+    }
+
+    public static (string Payload, string Sha256) EncodeIdentity(params (ulong NetEntityId, string EntityType, string UnmappedMark)[] records)
+    {
+        int size = 4;
+        var utf8 = new List<byte[]>();
+        for (int i = 0; i < records.Length; i++)
+        {
+            byte[] type = Encoding.UTF8.GetBytes(records[i].EntityType);
+            byte[] mark = Encoding.UTF8.GetBytes(records[i].UnmappedMark);
+            utf8.Add(type);
+            utf8.Add(mark);
+            size += 8 + 4 + type.Length + 4 + mark.Length;
+        }
+
+        byte[] bytes = new byte[size];
+        int offset = 0;
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset, 4), (uint)records.Length);
+        offset += 4;
+        for (int i = 0; i < records.Length; i++)
+        {
+            WriteU64(bytes, ref offset, records[i].NetEntityId);
+            byte[] type = utf8[i * 2];
+            BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset, 4), (uint)type.Length);
+            offset += 4;
+            type.CopyTo(bytes, offset);
+            offset += type.Length;
+            byte[] mark = utf8[(i * 2) + 1];
+            BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset, 4), (uint)mark.Length);
+            offset += 4;
+            mark.CopyTo(bytes, offset);
+            offset += mark.Length;
+        }
+
+        string payload = Convert.ToHexString(bytes).ToLowerInvariant();
+        string sha = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        return (payload, sha);
     }
 
     public static string SnapshotWithChatEvent()
@@ -137,9 +207,23 @@ internal static class GameplayWireFixtures
         ulong toRevision,
         out ReplicaStageHandle handle)
     {
+        return StageJson(replica, kind, json, sequence, baseline, fromRevision, toRevision, 1, out handle);
+    }
+
+    public static ReplicaStageStatus StageJson(
+        IClientReplica replica,
+        ReplicaUpdateKind kind,
+        string json,
+        ulong sequence,
+        ulong baseline,
+        ulong fromRevision,
+        ulong toRevision,
+        ulong generation,
+        out ReplicaStageHandle handle)
+    {
         byte[] bytes = Encoding.UTF8.GetBytes(json);
         var request = new ReplicaStageRequest(
-            1,
+            generation,
             kind,
             baseline,
             fromRevision,
@@ -185,6 +269,19 @@ internal static class GameplayWireFixtures
         ulong fromRevision,
         ulong toRevision)
     {
+        return CommitJson(replica, kind, json, sequence, baseline, fromRevision, toRevision, 1);
+    }
+
+    public static bool CommitJson(
+        IClientReplica replica,
+        ReplicaUpdateKind kind,
+        string json,
+        ulong sequence,
+        ulong baseline,
+        ulong fromRevision,
+        ulong toRevision,
+        ulong generation)
+    {
         ReplicaStageStatus staged = StageJson(
             replica,
             kind,
@@ -193,6 +290,7 @@ internal static class GameplayWireFixtures
             baseline,
             fromRevision,
             toRevision,
+            generation,
             out ReplicaStageHandle handle);
         if (staged != ReplicaStageStatus.Staged)
         {
@@ -208,6 +306,37 @@ internal static class GameplayWireFixtures
     public static bool CommitEmptySnapshot(IClientReplica replica)
     {
         return CommitJson(replica, ReplicaUpdateKind.FullSnapshot, EmptySnapshot(), 1, 10, 0, 0);
+    }
+
+    public static bool CommitJson(
+        IClientReplica replica,
+        ReplicaUpdateKind kind,
+        string json,
+        ulong sequence,
+        ulong baseline,
+        ulong fromRevision,
+        ulong toRevision,
+        ulong[] tombstones)
+    {
+        ReplicaStageStatus staged = StageJson(
+            replica,
+            kind,
+            json,
+            sequence,
+            baseline,
+            fromRevision,
+            toRevision,
+            tombstones,
+            out ReplicaStageHandle handle);
+        if (staged != ReplicaStageStatus.Staged)
+        {
+            return false;
+        }
+
+        return replica.ObserveRuntimeOutcome(
+            handle,
+            ReplicaRuntimeOutcome.CommittedOutcome(),
+            out _) == ReplicaOutcomeStatus.Observed;
     }
 
     private static string Block(string mappingId, string payload, string sha)

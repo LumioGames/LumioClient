@@ -16,7 +16,7 @@
 - 维护客户端 Baseline、SnapshotId、ReplicationRevision、Sequence 和 Mapping Hash 视图。
 - 使用生成 Mapping 将 Server Component 投影到允许的 Client Component/Field。
 - 维护 `NetEntityId -> LocalEntityId` 映射、Destroy Tombstone 和 provisional ID 确认重映射。
-- 为每个连接维护独立 `ReplicaWorld`：准入绑定、可见实体投影、client-replica Attribute Query、以及仅经权威事务提交后追加的 Room 聊天呈现（投递闸是 C-1 信封/序号，不是接收方 sender AOI）。
+- 为每个连接维护独立 `ReplicaWorld`：准入绑定、可见实体投影、client-replica Attribute Query、以及仅经权威事务提交后追加的 Room 聊天呈现（投递闸是 C-1 信封/序号，不是接收方 sender AOI）。FullSnapshot 按 `entity.identity` 普查重建实体集并清空聊天窗；`ConnectionSuperseded` 停止输入且不自动重连。
 - 检测 Gap、未知 Baseline、旧 Revision、重复/迟到 Delta、Mapping 不匹配和 Tombstone 冲突。
 - 输出 Apply Result、BaselineAck/DeltaAck 或明确的 ResyncRequest 原因。
 
@@ -60,6 +60,7 @@
 - 只有 Client Owner Thread 在 Runtime 指定 Phase 修改 Replica 状态。
 - 网络线程只产生不可变消息/Buffer；Decode 与 Apply 之间必须有明确大小和分配上限。
 - Resync 使用新的 Baseline Generation；旧 Generation 的迟到 Delta 必须拒绝。
+- FullSnapshot 丢弃旧实体投影后按 `stateBlocks` 重建；`ConnectionSuperseded` 使本代次输入关闭。
 
 ## 失败与恢复
 

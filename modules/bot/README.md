@@ -16,6 +16,7 @@
 - 消费 Game 提供的版本化 Scenario，生成确定性或脚本化平台无关 Input Sample。
 - 提供无渲染 Presentation Adapter，消费 Presentation Diff 并提取业务断言/统计。
 - Headless Bot 作为独立 `ReplicaChatConsumer`（`ReplicaClientKind.Bot`）消费本连接 `ReplicaWorld` 的聊天呈现；不得与 Browser 或其他 Bot 共享 World/Entity 引用。
+- Bot 发言节奏由 `ClientTimerManager` 适配 NativeCore `tickFrame`（N = 5）触发；每次触发提交一条 `chat.input` 并记入 trace。不自建定时器或绑定表。`ConnectionSuperseded` 后停止输入、不自动重连。
 - 批量创建和关闭独立 `ClientReplicaSession`，执行并发资源预算和速率限制。
 - 驱动连接、握手、复制、预测、Resync、Reconnect、Replay 和 Failure Bundle 测试链路。
 - 输出结构化 Bot Result、Command Stream、Client State Hash 和首差异证据。
@@ -48,14 +49,14 @@ Scenario 只声明 RequiredCapabilities 和业务步骤；Bot Host 使用与生�
 ## 依赖
 
 - 允许依赖：[`session`](../session/README.md)、[`input`](../input/README.md)、[`observability`](../observability/README.md)。
-- 外部依赖：Game 提供的 Scenario/Assertion Contract、Host Clock 和命令行/测试运行器。
+- 外部依赖：Game 提供的 Scenario/Assertion Contract、Host Clock 和命令行/测试运行器。`Lumio.Client.Bot.Host` 对架构仓 `Lumio.Engine.SDK` 的引用经 `LUMIO_ARCH_ROOT` / `LUMIO_ENGINE_SDK_PROJECT` 或相对仓根发现；缺失时 Host 仍可编译，不把兄弟仓当成 slnx 测试硬依赖。
 - 禁止依赖：Connection/Replica/Prediction 内部实现、Unity/HybridCLR、Server 实现或 Gameplay 源码反向引用。
 - Bot 通过 `session` 公共 API 使用核心能力，不能为测试暴露生产模块内部方法。
 
 ## 生命周期与线程模型
 
 - Bot Host 状态为 `Created -> Starting -> Running -> Stopping -> Stopped/Faulted`；每个 Session 维持自己的状态机。
-- Host Clock 决定 Tick 驱动；批量 Bot 可以共享调度器，但不能共享可变 Session/World 状态。
+- 宿主 Owner Tick 泵推进会话；gameplay 发言节奏只经 Client Timer Manager（内核 `tickFrame`）开火，不能用宿主循环当第二份节拍器。
 - Scenario Driver、网络回调和 Artifact IO 通过有界队列交接，禁止为追求吞吐使用无界任务创建。
 - 取消、超时和进程退出必须传播到全部子 Session，并在截止时间内导出最小证据。
 

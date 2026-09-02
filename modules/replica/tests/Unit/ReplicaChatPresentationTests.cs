@@ -13,7 +13,7 @@ public sealed class ReplicaChatPresentationTests
         Assert.True(GameplayWireFixtures.AdmitRoom(
             browser.World,
             extras: new[] { GameplayWireFixtures.Entity("101", "bot", "room-01", 1, 1, 0) }).Accepted);
-        Assert.True(GameplayWireFixtures.CommitEmptySnapshot(browser.Replica));
+        Assert.True(GameplayWireFixtures.CommitCensus(browser.Replica, (1, "player", ""), (101, "bot", "")));
         Assert.True(GameplayWireFixtures.CommitJson(
             browser.Replica,
             ReplicaUpdateKind.Delta,
@@ -83,9 +83,9 @@ public sealed class ReplicaChatPresentationTests
         Assert.True(GameplayWireFixtures.AdmitRoom(browser.World, extras: new[] { inAoiSender }).Accepted);
         Assert.True(GameplayWireFixtures.AdmitRoom(botOutOfAoi.World, "2", "player", extras: new[] { outOfAoiSender }).Accepted);
         Assert.True(GameplayWireFixtures.AdmitRoom(botWithoutSender.World, "3", "player").Accepted);
-        Assert.True(GameplayWireFixtures.CommitEmptySnapshot(browser.Replica));
-        Assert.True(GameplayWireFixtures.CommitEmptySnapshot(botOutOfAoi.Replica));
-        Assert.True(GameplayWireFixtures.CommitEmptySnapshot(botWithoutSender.Replica));
+        Assert.True(GameplayWireFixtures.CommitCensus(browser.Replica, (1, "player", ""), (101, "bot", "")));
+        Assert.True(GameplayWireFixtures.CommitCensus(botOutOfAoi.Replica, (2, "player", "")));
+        Assert.True(GameplayWireFixtures.CommitCensus(botWithoutSender.Replica, (3, "player", "")));
 
         (string payload2, string sha2) = GameplayWireFixtures.EncodeChatEvent(2, 2, 101, "hi", 8);
         string first = GameplayWireFixtures.ContractChatDelta();
@@ -117,7 +117,7 @@ public sealed class ReplicaChatPresentationTests
             browser.World.QueryAttribute(
                 new ReplicaAttributeQuery("client-replica", "room-01", "101", "EntityIdentity.entityType")).Status);
         Assert.Equal(
-            ReplicaQueryStatus.Invisible,
+            ReplicaQueryStatus.NonExistent,
             botOutOfAoi.World.QueryAttribute(
                 new ReplicaAttributeQuery("client-replica", "room-01", "101", "EntityIdentity.entityType")).Status);
         Assert.Equal(

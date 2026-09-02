@@ -1,4 +1,5 @@
 using Lumio.Client.Bot;
+using Lumio.Client.Bot.Tests.Support;
 using Lumio.Client.Connection;
 using Lumio.Client.Handshake;
 using Lumio.Client.Input;
@@ -27,13 +28,20 @@ public sealed class BotRunLoopTests
     public async Task BotRunLoop_FillEnqueueSessionTickObserve()
     {
         var order = new List<string>();
+        var timer = new ClientTimerManager(new C4TickFrameAbi());
         var host = new HeadlessBotHost(
             new RecordingSession(order),
             new RecordingDriver(order),
-            new RecordingIngress(order));
-        int code = await host.RunAsync(new BotRunRequest(1, 0), CancellationToken.None);
+            new RecordingIngress(order),
+            new NullTickHook(),
+            timer);
+        int code = await host.RunAsync(new BotRunRequest(5, 0), CancellationToken.None);
         Assert.Equal(0, code);
-        Assert.Equal(new[] { "fill", "enqueue", "tick", "observe" }, order.Take(4).ToArray());
+        Assert.Equal(new ulong[] { 5 }, host.SubmittedTicks.ToArray());
+        Assert.Contains("fill", order);
+        Assert.Contains("enqueue", order);
+        Assert.Contains("tick", order);
+        Assert.Contains("observe", order);
     }
 
     [Fact]
@@ -46,6 +54,14 @@ public sealed class BotRunLoopTests
         int code = await host.RunAsync(new BotRunRequest(2, 0), CancellationToken.None);
         Assert.Equal(0, code);
         Assert.Equal(ClientSessionState.Closed, session.GetSnapshot().State);
+    }
+
+    private sealed class NullTickHook : IBotTickHook
+    {
+        public void BeforeTick(int tick)
+        {
+            _ = tick;
+        }
     }
 
     private sealed class RecordingDriver : IBotScenarioDriver

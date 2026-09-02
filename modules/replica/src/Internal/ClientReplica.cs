@@ -138,6 +138,18 @@ namespace Lumio.Client.Replica
             return new ReplicaResetResult(true);
         }
 
+        public bool TryObserveConnectionSuperseded(ReadOnlyMemory<byte> utf8, out ReplicaConnectionSuperseded notice)
+        {
+            if (!GameplayCodec.TryDecodeConnectionSuperseded(utf8, out notice, out _))
+            {
+                notice = default(ReplicaConnectionSuperseded);
+                return false;
+            }
+
+            _world.ObserveSuperseded(in notice);
+            return true;
+        }
+
         public ReplicaSnapshot GetSnapshot()
         {
             return new ReplicaSnapshot(
