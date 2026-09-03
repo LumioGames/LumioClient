@@ -19,6 +19,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\src\Lumio.Client.Bot.csproj" />
+    <ProjectReference Include="..\host\Lumio.Client.Bot.Host.csproj" />
+    <ProjectReference Include="..\..\replica\src\Lumio.Client.Replica.csproj" />
+    <ProjectReference Include="$(LumioRuntimeRoot)\modules\ecs\src\Lumio.GameRuntime.Ecs\Lumio.GameRuntime.Ecs.csproj" Condition="'$(LumioRuntimeRoot)' != '' AND Exists('$(LumioRuntimeRoot)\modules\ecs\src\Lumio.GameRuntime.Ecs\Lumio.GameRuntime.Ecs.csproj')" />
     <ProjectReference Include="..\..\session\src\Lumio.Client.Session.csproj" />
     <ProjectReference Include="..\..\connection\src\Lumio.Client.Connection.csproj" />
     <ProjectReference Include="..\..\handshake\src\Lumio.Client.Handshake.csproj" />

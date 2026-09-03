@@ -132,7 +132,7 @@ namespace Lumio.Client.Replica
         {
             _ledger.Clear();
             _tombstones.Clear();
-            _world.Reset();
+            _world.Reset(request.Generation);
             _metadata.Reset(request.Generation);
             _lastStageStatus = ReplicaStageStatus.None;
             return new ReplicaResetResult(true);

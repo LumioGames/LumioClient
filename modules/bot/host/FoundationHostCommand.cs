@@ -7,6 +7,7 @@ using Lumio.Client.Persistence;
 using Lumio.Client.Prediction;
 using Lumio.Client.Replica;
 using Lumio.Client.Session;
+using Lumio.GameRuntime.Samples.Username.Components.Chat;
 #if LUMIO_ENGINE_SDK
 using Lumio.Engine.SDK;
 #endif
@@ -15,73 +16,44 @@ namespace Lumio.Client.Bot.Host;
 
 public static class FoundationHostCommand
 {
+    public const int BlockedExitCode = 8;
+
     public static readonly byte[] Hello = { 0xA5, 0x3C, 0x91, 0x07, 0xD2, 0x4E, 0xB8, 0x11 };
 
-    public static readonly byte[] Snapshot = { 0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE };
+    public static readonly byte[] Snapshot = ReplicaC1Frames.EmptyFullSnapshot;
 
     public static readonly byte[] Gap = { 0x91, 0xA9, 0xB0, 0xC3 };
 
     public static async Task<int> RunAsync(string[] args, CancellationToken cancellationToken)
     {
-        bool foundation = false;
-        string transport = "local-embedded";
-        string fixture = "foundation-happy-path";
-        string? engineNativePath = null;
-        if (args != null)
+        HostArgs parsed = HostArgs.Parse(args);
+        if (parsed.Production)
         {
-            for (int i = 0; i < args.Length; i++)
-            {
-                if (string.Equals(args[i], "foundation", StringComparison.OrdinalIgnoreCase))
-                {
-                    foundation = true;
-                }
-                else if (string.Equals(args[i], "--transport", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-                {
-                    i++;
-                    transport = args[i];
-                }
-                else if (string.Equals(args[i], "--fixture", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-                {
-                    i++;
-                    fixture = args[i];
-                }
-                else if (string.Equals(args[i], "--engine-native", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-                {
-                    i++;
-                    engineNativePath = args[i];
-                }
-            }
+            return await RunProductionAsync(parsed, cancellationToken).ConfigureAwait(false);
         }
 
-        if (args == null || args.Length == 0)
-        {
-            foundation = true;
-        }
-
-        if (!foundation)
+        if (!parsed.Foundation)
         {
             return 2;
         }
 
-        if (!string.Equals(transport, "local-embedded", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(parsed.Transport, "local-embedded", StringComparison.OrdinalIgnoreCase))
         {
             return 3;
         }
 
-        if (!string.Equals(fixture, "foundation-happy-path", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(parsed.Fixture, "foundation-happy-path", StringComparison.OrdinalIgnoreCase))
         {
             return 4;
         }
 
 #if LUMIO_ENGINE_SDK
-        using var engine = engineNativePath is null ? null : LumioEngineSdk.LoadNative(engineNativePath);
+        using var engine = parsed.EngineNativePath is null ? null : LumioEngineSdk.LoadNative(parsed.EngineNativePath);
         if (engine is not null)
         {
             engine.Ping();
             Console.WriteLine($"ENGINE_NATIVE path={engine.NativePath} buildId={engine.BuildId} abiHash={engine.AbiHash} binarySha256={engine.BinarySha256}");
         }
-#else
-        _ = engineNativePath;
 #endif
 
         var connections = new CapturingConnectionFactory();
@@ -124,6 +96,313 @@ public static class FoundationHostCommand
         }
 
         return code;
+    }
+
+    private static async Task<int> RunProductionAsync(HostArgs parsed, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(parsed.EngineNativePath))
+        {
+            Console.Error.WriteLine("BLOCKED: --engine-native is required (set LumioEngineNative or LUMIO_ENGINE_NATIVE).");
+            return BlockedExitCode;
+        }
+
+        if (string.IsNullOrWhiteSpace(parsed.LogDir))
+        {
+            Console.Error.WriteLine("BLOCKED: --log-dir is required (set LumioBotLogDir).");
+            return BlockedExitCode;
+        }
+
+        if (string.IsNullOrWhiteSpace(parsed.Server))
+        {
+            Console.Error.WriteLine("BLOCKED: --server is required (set LumioBotServer).");
+            return BlockedExitCode;
+        }
+
+        if (!File.Exists(parsed.EngineNativePath))
+        {
+            Console.Error.WriteLine("BLOCKED: --engine-native path does not exist.");
+            return BlockedExitCode;
+        }
+
+#if !LUMIO_NATIVE_LOADER
+        Console.Error.WriteLine("BLOCKED: Lumio.Engine.NativeLoader project was not found.");
+        return BlockedExitCode;
+#else
+        Directory.CreateDirectory(parsed.LogDir);
+        string logPath = Path.Combine(parsed.LogDir, "bot-host.ndjson");
+        string releaseFlag = Path.Combine(parsed.LogDir, "release.flag");
+
+        using NativeLoaderTimerAbi abi = NativeLoaderTimerAbi.Load(parsed.EngineNativePath);
+        using var timer = new ClientTimerManager(abi);
+        if (!timer.ScheduleBotChatCadence())
+        {
+            Console.Error.WriteLine("BLOCKED: ClientTimerManager failed to schedule bot chat cadence.");
+            return BlockedExitCode;
+        }
+
+        var bots = new List<ProductionBot>();
+        foreach (string account in EnumerateAccounts(parsed.AccountFrom, parsed.AccountTo))
+        {
+            bots.Add(CreateProductionBot(parsed.Server, account));
+        }
+
+        ulong tick = 0;
+        while (!cancellationToken.IsCancellationRequested && !File.Exists(releaseFlag))
+        {
+            tick++;
+            for (int i = 0; i < bots.Count; i++)
+            {
+                bots[i].Session.Tick(new ClientOwnerTick(tick));
+            }
+
+            IReadOnlyList<ulong> dues = timer.Advance(tick);
+            for (int d = 0; d < dues.Count; d++)
+            {
+                for (int i = 0; i < bots.Count; i++)
+                {
+                    ProductionBot bot = bots[i];
+                    if (!bot.Session.TryGetReplicaWorld(out IReplicaWorld world) || !world.InputEnabled)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        world.Manager.World.Self.Get<ChatComponent>().SendMessage("bot-" + dues[d].ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        world.Manager.Tick();
+                        AppendChatInputLog(logPath, dues[d], bot.AccountId);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                    }
+                }
+            }
+
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+        }
+
+        for (int i = 0; i < bots.Count; i++)
+        {
+            bots[i].Session.RequestClose(new SessionCloseRequest(false));
+        }
+
+        return 0;
+#endif
+    }
+
+    private static ProductionBot CreateProductionBot(string server, string account)
+    {
+        var ingress = new InputSampleIngress(16);
+        var options = new ClientEventPipelineOptions(8, 4, TimeSpan.FromSeconds(1));
+        new ClientEventPipelineFactory().Create(in options, new InMemoryClientEventSink(8), out var writer);
+        var endpoint = new ClientEndpoint(
+            server,
+            new byte[] { 0x01, 0x02, 0x03, 0x04 },
+            new byte[] { 0x05, 0x06, 0x07, 0x08 },
+            TimeSpan.FromSeconds(10));
+        var deps = new ClientSessionDependencies(
+            new WebSocketClientConnectionFactory(),
+            new ClientHandshakeFactory(),
+            new HostCapability(),
+            new HelloClassifier(),
+            ingress,
+            new InputCommandSource(ingress, new HostInputMapper()),
+            IClientPersistenceFactory.CreateMemory().CreateVerifiedSessionArtifactSource(),
+            writer,
+            new HostRuntime(),
+            new ClientReplicaFactory(),
+            new ClientPredictionFactory(),
+            new ImmediateGameplayScopeActivator(),
+            new NullPresentationSink(),
+            new JsonSessionMessageKindMap());
+        new ClientSessionFactory().Create(in deps, out IClientSession session);
+        session.Login(new SessionConnectRequest(1, endpoint), CancellationToken.None);
+        _ = account;
+        return new ProductionBot(account, session);
+    }
+
+    private static void AppendChatInputLog(string path, ulong tick, string accountId)
+    {
+        string line = "{\"ts\":\"" + DateTime.UtcNow.ToString("o") +
+                      "\",\"kind\":\"chat.input\",\"tick\":" + tick.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                      ",\"tickSource\":\"native-kernel/tickFrame\",\"pid\":" +
+                      Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                      ",\"accountId\":\"" + accountId + "\"}\n";
+        File.AppendAllText(path, line);
+    }
+
+    private static IEnumerable<string> EnumerateAccounts(string from, string to)
+    {
+        SplitAccount(from, out string prefix, out int start);
+        SplitAccount(to, out _, out int end);
+        if (end < start)
+        {
+            end = start;
+        }
+
+        for (int i = start; i <= end; i++)
+        {
+            string number = i < 100
+                ? i.ToString("D2", System.Globalization.CultureInfo.InvariantCulture)
+                : i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            yield return prefix + number;
+        }
+    }
+
+    private static void SplitAccount(string account, out string prefix, out int number)
+    {
+        prefix = "Bot";
+        number = 1;
+        if (string.IsNullOrEmpty(account))
+        {
+            return;
+        }
+
+        int i = account.Length - 1;
+        while (i >= 0 && char.IsDigit(account[i]))
+        {
+            i--;
+        }
+
+        prefix = i >= 0 ? account[..(i + 1)] : string.Empty;
+        if (!int.TryParse(account.AsSpan(i + 1), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out number))
+        {
+            number = 1;
+        }
+    }
+
+    private readonly struct ProductionBot
+    {
+        public ProductionBot(string accountId, IClientSession session)
+        {
+            AccountId = accountId;
+            Session = session;
+        }
+
+        public string AccountId { get; }
+
+        public IClientSession Session { get; }
+    }
+
+    internal readonly struct HostArgs
+    {
+        public bool Foundation { get; init; }
+        public bool Production { get; init; }
+        public string Transport { get; init; }
+        public string Fixture { get; init; }
+        public string? Server { get; init; }
+        public string AccountFrom { get; init; }
+        public string AccountTo { get; init; }
+        public string? EngineNativePath { get; init; }
+        public string? LogDir { get; init; }
+
+        public static HostArgs Parse(string[]? args)
+        {
+            bool foundation = false;
+            string transport = "local-embedded";
+            string fixture = "foundation-happy-path";
+            string? server = FirstEnv("LumioBotServer");
+            string accountFrom = FirstEnv("LumioBotAccountFrom") ?? "Bot01";
+            string accountTo = FirstEnv("LumioBotAccountTo") ?? "Bot01";
+            string? engineNative = FirstEnv("LumioEngineNative", "LUMIO_ENGINE_NATIVE");
+            string? logDir = FirstEnv("LumioBotLogDir");
+
+            if (args != null)
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (string.Equals(args[i], "foundation", StringComparison.OrdinalIgnoreCase))
+                    {
+                        foundation = true;
+                    }
+                    else if (Match(args, i, "--transport", out string transportValue))
+                    {
+                        i++;
+                        transport = transportValue;
+                    }
+                    else if (Match(args, i, "--fixture", out string fixtureValue))
+                    {
+                        i++;
+                        fixture = fixtureValue;
+                    }
+                    else if (Match(args, i, "--server", out string serverValue))
+                    {
+                        i++;
+                        server = serverValue;
+                    }
+                    else if (Match(args, i, "--account-from", out string fromValue))
+                    {
+                        i++;
+                        accountFrom = fromValue;
+                    }
+                    else if (Match(args, i, "--account-to", out string toValue))
+                    {
+                        i++;
+                        accountTo = toValue;
+                    }
+                    else if (Match(args, i, "--engine-native", out string nativeValue))
+                    {
+                        i++;
+                        engineNative = nativeValue;
+                    }
+                    else if (Match(args, i, "--log-dir", out string logValue))
+                    {
+                        i++;
+                        logDir = logValue;
+                    }
+                }
+            }
+
+            if (args == null || args.Length == 0)
+            {
+                foundation = true;
+            }
+
+            bool production = !string.IsNullOrEmpty(server) && !foundation;
+            if (!production && !foundation && args != null && args.Length == 0)
+            {
+                foundation = true;
+            }
+
+            return new HostArgs
+            {
+                Foundation = foundation,
+                Production = production,
+                Transport = transport,
+                Fixture = fixture,
+                Server = server,
+                AccountFrom = accountFrom,
+                AccountTo = accountTo,
+                EngineNativePath = engineNative,
+                LogDir = logDir
+            };
+        }
+
+        private static bool Match(string[] args, int i, string name, out string value)
+        {
+            value = string.Empty;
+            if (!string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase) || i + 1 >= args.Length)
+            {
+                return false;
+            }
+
+            value = args[i + 1];
+            return true;
+        }
+
+        private static string? FirstEnv(params string[] names)
+        {
+            for (int i = 0; i < names.Length; i++)
+            {
+                string? value = Environment.GetEnvironmentVariable(names[i]);
+                if (!string.IsNullOrEmpty(value))
+                {
+                    return value;
+                }
+            }
+
+            return null;
+        }
     }
 
     private sealed class FoundationPeer : IBotTickHook

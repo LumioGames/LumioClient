@@ -141,6 +141,23 @@ public sealed class BotRunLoopTests
             return new SessionCommandResult(true);
         }
 
+        public SessionCommandResult Login(in SessionConnectRequest request, CancellationToken cancellationToken)
+        {
+            return RequestConnect(in request, cancellationToken);
+        }
+
+        public bool TryDequeueSuperseded(out SessionSupersededNotice notice)
+        {
+            notice = default;
+            return false;
+        }
+
+        public bool TryGetReplicaWorld(out IReplicaWorld world)
+        {
+            world = default!;
+            return false;
+        }
+
         public ClientSessionSnapshot GetSnapshot()
         {
             _order.Add("observe");

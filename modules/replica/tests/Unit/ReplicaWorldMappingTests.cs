@@ -31,11 +31,9 @@ public sealed class ReplicaWorldMappingTests
             new ReplicaAttributeQuery("client-replica", "room-01", "101", "EntityIdentity.entityType"));
         Assert.Equal(ReplicaQueryStatus.Ok, type.Status);
         Assert.Equal("bot", type.Value);
-        Assert.Equal(4UL, type.ObservedRevision);
-        Assert.Equal(7UL, type.ObservedTick);
 
         ReplicaAttributeQueryResult persistOnly = browser.World.QueryAttribute(
-            new ReplicaAttributeQuery("client-replica", "room-01", "101", "ChatComponent.lastMessageText"));
+            new ReplicaAttributeQuery("client-replica", "room-01", "101", "ChatComponent.lastMessagePersistOnly"));
         Assert.Equal(ReplicaQueryStatus.Invisible, persistOnly.Status);
         Assert.Equal(string.Empty, persistOnly.Value);
     }

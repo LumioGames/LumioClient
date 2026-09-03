@@ -1,6 +1,8 @@
 using Lumio.Client.Bot;
+using Lumio.Client.Bot.Host;
 using Lumio.Client.Bot.Tests.Support;
 using Lumio.Client.Connection;
+using Lumio.GameRuntime.Ecs;
 using Lumio.Client.Handshake;
 using Lumio.Client.Input;
 using Lumio.Client.Observability;
@@ -63,6 +65,72 @@ public sealed class BotCadenceTests
     }
 
     [Fact]
+    public async Task HeadlessBotHostSendsChatOnCadenceAfterCreateRecord()
+    {
+        IClientReplica replica = new ClientReplicaFactory().Create();
+        replica.ResetForNewSession(new ReplicaResetRequest(1));
+        IReplicaWorld world = replica.World;
+        var admission = new ReplicaAdmission(
+            new ReplicaBinding("acct-07", "room-01", "1", "player", 1),
+            new[]
+            {
+                new ReplicaVisibleEntity("1", "player", "room-01", 1, 1, 0, Array.Empty<ReplicaAttributeValue>(), true, false)
+            });
+        Assert.True(world.InstallAdmission(in admission).Accepted);
+        Assert.True(CommitEmptySnapshot(replica));
+        NetEntityId self = world.Manager.World.Self.Id;
+        world.Manager.Enqueue(new WorldChangeMessage(
+            1UL,
+            new[] { new CreateRecord("player", self, Array.Empty<FieldValue>()) },
+            Array.Empty<FieldChange>(),
+            Array.Empty<NetEntityId>(),
+            Array.Empty<ClientRpcRecord>()));
+        world.Manager.Tick();
+        Assert.True(world.InputEnabled);
+        Assert.True(world.Manager.World.IsLive(self));
+
+        var abi = new C4TickFrameAbi();
+        var timer = new ClientTimerManager(abi);
+        var host = new HeadlessBotHost(
+            new RecordingSession(new List<string>()),
+            new RecordingDriver(new List<string>()),
+            new RecordingIngress(new List<string>()),
+            new NullHook(),
+            timer,
+            world);
+        int code = await host.RunAsync(new BotRunRequest(15, 0), CancellationToken.None);
+        Assert.Equal(0, code);
+        Assert.Equal(new ulong[] { 5, 10, 15 }, host.SubmittedTicks.ToArray());
+        IReadOnlyList<WorldMessage> outbound = world.DrainOutbound();
+        Assert.Equal(3, outbound.Count(message => message is InputCommandMessage input
+            && string.Equals(input.MappingId, "chat.input", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task MissingEngineNativeIsBlocked()
+    {
+        string logDir = Path.Combine(Path.GetTempPath(), "lumio-bot-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(logDir);
+        try
+        {
+            int code = await FoundationHostCommand.RunAsync(
+                new[]
+                {
+                    "--server", "ws://127.0.0.1:1/session",
+                    "--account-from", "Bot01",
+                    "--account-to", "Bot01",
+                    "--log-dir", logDir
+                },
+                CancellationToken.None);
+            Assert.Equal(FoundationHostCommand.BlockedExitCode, code);
+        }
+        finally
+        {
+            Directory.Delete(logDir, true);
+        }
+    }
+
+    [Fact]
     public void ProductionSourcesHaveNoSecondTimerOrBindingTable()
     {
         string repo = RepoRoot();
@@ -88,6 +156,26 @@ public sealed class BotCadenceTests
         }
 
         Assert.Empty(hits);
+    }
+
+    private static bool CommitEmptySnapshot(IClientReplica replica)
+    {
+        var request = new ReplicaStageRequest(
+            1,
+            ReplicaUpdateKind.FullSnapshot,
+            10,
+            0,
+            0,
+            1,
+            ReplicaC1Frames.EmptyFullSnapshot,
+            Array.Empty<ulong>(),
+            Array.Empty<ulong>());
+        if (replica.StageAuthority(in request, out ReplicaStageHandle handle, out _).Status != ReplicaStageStatus.Staged)
+        {
+            return false;
+        }
+
+        return replica.ObserveRuntimeOutcome(handle, ReplicaRuntimeOutcome.CommittedOutcome(), out _) == ReplicaOutcomeStatus.Observed;
     }
 
     private static string RepoRoot()
@@ -189,6 +277,23 @@ public sealed class BotCadenceTests
             _ = request;
             _state = ClientSessionState.Closed;
             return new SessionCommandResult(true);
+        }
+
+        public SessionCommandResult Login(in SessionConnectRequest request, CancellationToken cancellationToken)
+        {
+            return RequestConnect(in request, cancellationToken);
+        }
+
+        public bool TryDequeueSuperseded(out SessionSupersededNotice notice)
+        {
+            notice = default;
+            return false;
+        }
+
+        public bool TryGetReplicaWorld(out IReplicaWorld world)
+        {
+            world = default!;
+            return false;
         }
 
         public ClientSessionSnapshot GetSnapshot()

@@ -17,12 +17,23 @@
     <LumioEngineSdkSibling>$(MSBuildThisFileDirectory)../../../../LumioGameEngineArchitecture/engine/managed/Lumio.Engine.SDK/Lumio.Engine.SDK.csproj</LumioEngineSdkSibling>
     <LumioEngineSdkCsproj Condition="'$(LumioEngineSdkCsproj)' == '' AND Exists('$(LumioEngineSdkInRepo)')">$(LumioEngineSdkInRepo)</LumioEngineSdkCsproj>
     <LumioEngineSdkCsproj Condition="'$(LumioEngineSdkCsproj)' == '' AND Exists('$(LumioEngineSdkSibling)')">$(LumioEngineSdkSibling)</LumioEngineSdkCsproj>
+    <LumioNativeLoaderCsproj Condition="'$(LumioArchRoot)' != ''">$(LumioArchRoot)/engine/managed/Lumio.Engine.NativeLoader/Lumio.Engine.NativeLoader.csproj</LumioNativeLoaderCsproj>
+    <LumioNativeLoaderInRepo>$(MSBuildThisFileDirectory)../../../LumioGameEngineArchitecture/engine/managed/Lumio.Engine.NativeLoader/Lumio.Engine.NativeLoader.csproj</LumioNativeLoaderInRepo>
+    <LumioNativeLoaderSibling>$(MSBuildThisFileDirectory)../../../../LumioGameEngineArchitecture/engine/managed/Lumio.Engine.NativeLoader/Lumio.Engine.NativeLoader.csproj</LumioNativeLoaderSibling>
+    <LumioNativeLoaderCsproj Condition="'$(LumioNativeLoaderCsproj)' == '' AND Exists('$(LumioNativeLoaderInRepo)')">$(LumioNativeLoaderInRepo)</LumioNativeLoaderCsproj>
+    <LumioNativeLoaderCsproj Condition="'$(LumioNativeLoaderCsproj)' == '' AND Exists('$(LumioNativeLoaderSibling)')">$(LumioNativeLoaderSibling)</LumioNativeLoaderCsproj>
   </PropertyGroup>
   <PropertyGroup Condition="'$(LumioEngineSdkCsproj)' != '' AND Exists('$(LumioEngineSdkCsproj)')">
     <DefineConstants>$(DefineConstants);LUMIO_ENGINE_SDK</DefineConstants>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(LumioNativeLoaderCsproj)' != '' AND Exists('$(LumioNativeLoaderCsproj)')">
+    <DefineConstants>$(DefineConstants);LUMIO_NATIVE_LOADER</DefineConstants>
+  </PropertyGroup>
   <ItemGroup Condition="'$(LumioEngineSdkCsproj)' != '' AND Exists('$(LumioEngineSdkCsproj)')">
     <ProjectReference Include="$(LumioEngineSdkCsproj)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(LumioNativeLoaderCsproj)' != '' AND Exists('$(LumioNativeLoaderCsproj)')">
+    <ProjectReference Include="$(LumioNativeLoaderCsproj)" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\src\Lumio.Client.Bot.csproj" />

@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Lumio.Client.Input;
+using Lumio.Client.Replica;
 using Lumio.Client.Session;
+using Lumio.GameRuntime.Samples.Username.Components.Chat;
 
 namespace Lumio.Client.Bot
 {
@@ -14,18 +17,19 @@ namespace Lumio.Client.Bot
         private readonly IInputSampleIngress _ingress;
         private readonly IBotTickHook _hook;
         private readonly ClientTimerManager? _timer;
+        private readonly IReplicaWorld? _world;
         private readonly List<ulong> _submittedTicks = new List<ulong>();
         private bool _inputEnabled = true;
         private bool _reconnected;
         private string _inputStopReason = string.Empty;
 
         public HeadlessBotHost(IClientSession session, IBotScenarioDriver driver, IInputSampleIngress ingress)
-            : this(session, driver, ingress, new NullTickHook(), null)
+            : this(session, driver, ingress, new NullTickHook(), null, null)
         {
         }
 
         public HeadlessBotHost(IClientSession session, IBotScenarioDriver driver, IInputSampleIngress ingress, IBotTickHook hook)
-            : this(session, driver, ingress, hook, null)
+            : this(session, driver, ingress, hook, null, null)
         {
         }
 
@@ -35,12 +39,24 @@ namespace Lumio.Client.Bot
             IInputSampleIngress ingress,
             IBotTickHook hook,
             ClientTimerManager? timer)
+            : this(session, driver, ingress, hook, timer, null)
+        {
+        }
+
+        public HeadlessBotHost(
+            IClientSession session,
+            IBotScenarioDriver driver,
+            IInputSampleIngress ingress,
+            IBotTickHook hook,
+            ClientTimerManager? timer,
+            IReplicaWorld? world)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _driver = driver ?? throw new ArgumentNullException(nameof(driver));
             _ingress = ingress ?? throw new ArgumentNullException(nameof(ingress));
             _hook = hook ?? new NullTickHook();
             _timer = timer;
+            _world = world;
         }
 
         public IReadOnlyList<ulong> SubmittedTicks
@@ -78,15 +94,27 @@ namespace Lumio.Client.Bot
                 cancellationToken.ThrowIfCancellationRequested();
                 _hook.BeforeTick(i);
                 ulong tick = (ulong)(i + 1);
+                if (_session.GetSnapshot().State == ClientSessionState.Superseded)
+                {
+                    StopInput("connection_superseded");
+                }
+
                 if (_timer != null && _inputEnabled)
                 {
                     IReadOnlyList<ulong> dues = _timer.Advance(tick);
                     for (int d = 0; d < dues.Count; d++)
                     {
-                        int n = _driver.FillSamples(new BotDriverContext(i), samples);
-                        for (int s = 0; s < n; s++)
+                        if (_world != null)
                         {
-                            _ingress.TryEnqueue(in samples[s]);
+                            TrySendChat(dues[d]);
+                        }
+                        else
+                        {
+                            int n = _driver.FillSamples(new BotDriverContext(i), samples);
+                            for (int s = 0; s < n; s++)
+                            {
+                                _ingress.TryEnqueue(in samples[s]);
+                            }
                         }
 
                         _submittedTicks.Add(dues[d]);
@@ -99,7 +127,10 @@ namespace Lumio.Client.Bot
 
                 _session.Tick(new ClientOwnerTick((ulong)i));
                 _ = _session.GetSnapshot();
-                await Task.Yield();
+                if (_world == null)
+                {
+                    await Task.Yield();
+                }
             }
 
             _session.RequestClose(new SessionCloseRequest(false));
@@ -116,6 +147,23 @@ namespace Lumio.Client.Bot
         Task<int> IHeadlessBotHost.RunAsync(in BotRunRequest request, CancellationToken cancellationToken)
         {
             return RunAsync(request, cancellationToken);
+        }
+
+        private void TrySendChat(ulong dueTick)
+        {
+            if (_world == null || !_world.InputEnabled)
+            {
+                return;
+            }
+
+            try
+            {
+                _world.Manager.World.Self.Get<ChatComponent>().SendMessage("bot-" + dueTick.ToString(CultureInfo.InvariantCulture));
+                _world.Manager.Tick();
+            }
+            catch (InvalidOperationException)
+            {
+            }
         }
 
         private sealed class NullTickHook : IBotTickHook

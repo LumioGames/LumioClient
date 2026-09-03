@@ -8,7 +8,12 @@ namespace Lumio.Client.Session
 
         public bool IsTerminal
         {
-            get { return State == ClientSessionState.Closed || State == ClientSessionState.Faulted; }
+            get
+            {
+                return State == ClientSessionState.Closed
+                    || State == ClientSessionState.Faulted
+                    || State == ClientSessionState.Superseded;
+            }
         }
 
         public bool TryEnter(ClientSessionState next)

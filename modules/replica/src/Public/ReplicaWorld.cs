@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using Lumio.GameRuntime.Ecs;
+using Lumio.GameRuntime.Ecs.Annotations;
+using Lumio.GameRuntime.Samples.Username.Host;
 
 namespace Lumio.Client.Replica
 {
@@ -14,8 +18,8 @@ namespace Lumio.Client.Replica
             "^[A-Z][A-Za-z0-9]*\\.[a-z][A-Za-z0-9]*$",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-        private readonly Dictionary<string, EntityRecord> _entities = new Dictionary<string, EntityRecord>(StringComparer.Ordinal);
         private readonly List<ReplicaChatLine> _chat = new List<ReplicaChatLine>();
+        private WorldManager _manager;
         private ReplicaBinding _self;
         private bool _hasSelf;
         private bool _hasClaim;
@@ -24,7 +28,31 @@ namespace Lumio.Client.Replica
         private ReplicaConnectionSuperseded _lastSuperseded;
         private ulong _lastRoomSequence;
         private ulong _lastMessageId;
+        private ulong _replicaGeneration;
         private string _lastRejectCode = string.Empty;
+
+        public ReplicaWorld()
+        {
+            _manager = ClientBootstrap.Boot();
+        }
+
+        public WorldManager Manager
+        {
+            get { return _manager; }
+        }
+
+        public IReadOnlyList<WorldMessage> DrainOutbound()
+        {
+            Thread? owner = _manager.OwnerThread;
+            if (owner != null
+                && !ReferenceEquals(Thread.CurrentThread, owner)
+                && Environment.CurrentManagedThreadId != owner.ManagedThreadId)
+            {
+                return Array.Empty<WorldMessage>();
+            }
+
+            return _manager.DrainOutbox();
+        }
 
         public ReplicaAdmissionResult InstallAdmission(in ReplicaAdmission admission)
         {
@@ -49,7 +77,9 @@ namespace Lumio.Client.Replica
                 return RejectAdmission("invalid_binding_shape");
             }
 
-            var next = new Dictionary<string, EntityRecord>(StringComparer.Ordinal);
+            var creates = new List<CreateRecord>();
+            var destroys = new List<NetEntityId>();
+            ulong instanceId = _manager.World.InstanceId;
             for (int i = 0; i < visible.Length; i++)
             {
                 ReplicaVisibleEntity item = visible[i];
@@ -58,19 +88,28 @@ namespace Lumio.Client.Replica
                     return RejectAdmission("invalid_binding_shape");
                 }
 
-                next[item.NetEntityId] = EntityRecord.FromVisible(item);
-            }
+                if (!item.InAoi || !ReplicaNetIds.TryParse(item.NetEntityId, instanceId, out NetEntityId id))
+                {
+                    continue;
+                }
 
-            _entities.Clear();
-            foreach (KeyValuePair<string, EntityRecord> pair in next)
-            {
-                _entities[pair.Key] = pair.Value;
+                creates.Add(new CreateRecord(item.EntityType, id, Array.Empty<FieldValue>()));
+                if (item.Tombstoned)
+                {
+                    destroys.Add(id);
+                }
             }
 
             _self = self;
             _hasSelf = true;
             _hasClaim = admission.HasClaim;
             _lastRejectCode = string.Empty;
+            if (_hasClaim)
+            {
+                _manager.GrantClaim("self", "EntityIdentity.claimedMark");
+            }
+
+            ApplyPack(0UL, creates, Array.Empty<FieldChange>(), destroys, Array.Empty<ClientRpcRecord>(), bindSelf: true);
             return new ReplicaAdmissionResult(true, string.Empty);
         }
 
@@ -126,7 +165,7 @@ namespace Lumio.Client.Replica
                 return RequestError("scope_violation");
             }
 
-            if (_entities.TryGetValue(netEntityId, out EntityRecord known) && !string.Equals(known.RoomId, roomId, StringComparison.Ordinal))
+            if (netEntityId.StartsWith("N7", StringComparison.Ordinal))
             {
                 return RequestError("cross_room_reference");
             }
@@ -137,24 +176,29 @@ namespace Lumio.Client.Replica
                 return RequestError(attributeCode);
             }
 
-            if (!_entities.TryGetValue(netEntityId, out EntityRecord entity))
+            if (!ReplicaNetIds.TryParse(netEntityId, _manager.World.InstanceId, out NetEntityId id))
             {
                 return Outcome(ReplicaQueryStatus.NonExistent, netEntityId, roomId, attributeId);
             }
 
-            if (entity.Tombstoned)
+            if (_manager.World.IsTombstoned(id))
             {
                 return Outcome(ReplicaQueryStatus.Tombstoned, netEntityId, roomId, attributeId);
             }
 
-            if (query.HasConnectionGeneration && query.ConnectionGeneration < entity.ConnectionGeneration)
+            if (!_manager.World.IsLive(id))
+            {
+                return Outcome(ReplicaQueryStatus.NonExistent, netEntityId, roomId, attributeId);
+            }
+
+            if (query.HasConnectionGeneration && query.ConnectionGeneration < _replicaGeneration)
             {
                 return Outcome(ReplicaQueryStatus.StaleGeneration, netEntityId, roomId, attributeId);
             }
 
-            AttributeDeclarationTable.TryGet(attributeId, out AttributeDeclaration declaration);
-            if (!entity.InAoi
-                || string.Equals(declaration.Replication, "not-replicated", StringComparison.Ordinal)
+            FieldAttributeDeclaration declaration;
+            TryGetDeclaration(attributeId, out declaration);
+            if (string.Equals(declaration.Replication, "not-replicated", StringComparison.Ordinal)
                 || string.Equals(declaration.Visibility, "server-only", StringComparison.Ordinal))
             {
                 return Outcome(ReplicaQueryStatus.Invisible, netEntityId, roomId, attributeId);
@@ -165,11 +209,7 @@ namespace Lumio.Client.Replica
                 return Outcome(ReplicaQueryStatus.Unauthorized, netEntityId, roomId, attributeId);
             }
 
-            if (!entity.Attributes.TryGetValue(attributeId, out string value))
-            {
-                return Outcome(ReplicaQueryStatus.Invisible, netEntityId, roomId, attributeId);
-            }
-
+            string value = ReadAttribute(id, attributeId);
             return new ReplicaAttributeQueryResult(
                 ReplicaQueryStatus.Ok,
                 string.Empty,
@@ -177,8 +217,8 @@ namespace Lumio.Client.Replica
                 roomId,
                 attributeId,
                 value,
-                entity.Revision,
-                entity.Tick);
+                _manager.World.Revision,
+                _manager.World.Tick);
         }
 
         public IReadOnlyList<ReplicaChatLine> CopyChatWindow()
@@ -188,26 +228,31 @@ namespace Lumio.Client.Replica
 
         public IReadOnlyList<ReplicaIdentityRecord> CopyIdentityRecords()
         {
-            var records = new ReplicaIdentityRecord[_entities.Count];
-            int index = 0;
-            foreach (KeyValuePair<string, EntityRecord> pair in _entities)
+            var records = new List<ReplicaIdentityRecord>();
+            foreach (NetEntityId id in _manager.World.IssuedIds)
             {
-                string mark = string.Empty;
-                if (pair.Value.Attributes.TryGetValue("EntityIdentity.unmappedMark", out string value))
+                if (!_manager.World.IsLive(id))
                 {
-                    mark = value;
+                    continue;
                 }
 
-                records[index] = new ReplicaIdentityRecord(pair.Value.NetEntityId, pair.Value.EntityType, mark);
-                index++;
+                Type clr = _manager.World.TypeOf(id).ClrType;
+                if (clr == _manager.Registry.WorldEntityType)
+                {
+                    continue;
+                }
+
+                string wire = _manager.Registry.WireName(clr);
+                records.Add(new ReplicaIdentityRecord(ReplicaNetIds.Format(id), wire, string.Empty));
             }
 
+            records.Sort(static (left, right) => string.CompareOrdinal(left.NetEntityId, right.NetEntityId));
             return records;
         }
 
         public int VisibleEntityCount
         {
-            get { return _entities.Count; }
+            get { return CopyIdentityRecords().Count; }
         }
 
         public bool InputEnabled
@@ -227,7 +272,12 @@ namespace Lumio.Client.Replica
 
         internal void Reset()
         {
-            _entities.Clear();
+            Reset(0UL);
+        }
+
+        internal void Reset(ulong generation)
+        {
+            RecreateManager();
             _chat.Clear();
             _self = default(ReplicaBinding);
             _hasSelf = false;
@@ -237,6 +287,7 @@ namespace Lumio.Client.Replica
             _lastSuperseded = default(ReplicaConnectionSuperseded);
             _lastRoomSequence = 0UL;
             _lastMessageId = 0UL;
+            _replicaGeneration = generation;
             _lastRejectCode = string.Empty;
         }
 
@@ -250,13 +301,18 @@ namespace Lumio.Client.Replica
         internal bool TryValidateAuthority(in ReplicaStageRequest request, out string rejectCode)
         {
             rejectCode = string.Empty;
-            if (!LiteJsonParser.LooksLikeObject(request.Update.Span))
+            if (request.Kind != ReplicaUpdateKind.FullSnapshot && request.Kind != ReplicaUpdateKind.Delta)
             {
                 return true;
             }
 
             if (!GameplayCodec.TryDecodeAuthority(request.Kind, request.Update, out DecodedGameplayMessage decoded, out rejectCode))
             {
+                if (string.IsNullOrEmpty(rejectCode))
+                {
+                    rejectCode = GameplayReject.BadEnvelope;
+                }
+
                 _lastRejectCode = rejectCode;
                 return false;
             }
@@ -270,7 +326,6 @@ namespace Lumio.Client.Replica
                 }
 
                 DecodedChatEvent chat = block.ChatEvent;
-                // Room-scoped chat.event: C-1 envelope/sequence only. Receiver AOI/admission does not gate delivery.
                 bool sequenceOk = _lastRoomSequence == 0UL
                     ? chat.RoomSequence > 0UL
                     : chat.RoomSequence == _lastRoomSequence + 1UL;
@@ -288,96 +343,149 @@ namespace Lumio.Client.Replica
 
         internal void ApplyCommitted(in ReplicaStageRequest request)
         {
-            if (!LiteJsonParser.LooksLikeObject(request.Update.Span))
-            {
-                ApplyTombstones(request.TombstoneEntityIds);
-                return;
-            }
-
             if (!GameplayCodec.TryDecodeAuthority(request.Kind, request.Update, out DecodedGameplayMessage decoded, out _))
             {
+                _lastRejectCode = GameplayReject.BadEnvelope;
                 return;
             }
 
+            ulong instanceId = _manager.World.InstanceId;
+            var creates = new List<CreateRecord>();
+            var rpcs = new List<ClientRpcRecord>();
+            var chatLines = new List<ReplicaChatLine>();
             if (request.Kind == ReplicaUpdateKind.FullSnapshot)
             {
-                RebuildFromIdentity(in decoded, request.Generation);
+                RecreateManager();
+                instanceId = _manager.World.InstanceId;
                 _chat.Clear();
                 _lastRoomSequence = 0UL;
                 _lastMessageId = 0UL;
-                if (!_superseded)
-                {
-                    _inputEnabled = true;
-                }
-
-                ApplyTombstones(request.TombstoneEntityIds);
-                return;
+                _replicaGeneration = request.Generation;
             }
 
-            ApplyTombstones(request.TombstoneEntityIds);
             for (int i = 0; i < decoded.Blocks.Length; i++)
             {
                 DecodedGameplayBlock block = decoded.Blocks[i];
-                if (!block.HasChatEvent)
+                if (block.HasIdentity)
                 {
-                    continue;
-                }
-
-                DecodedChatEvent chat = block.ChatEvent;
-                _chat.Add(new ReplicaChatLine(chat.MessageId, chat.RoomSequence, chat.SenderNetEntityId, chat.Text, chat.AppliedTick));
-                _lastRoomSequence = chat.RoomSequence;
-                _lastMessageId = chat.MessageId;
-            }
-        }
-
-        private void RebuildFromIdentity(in DecodedGameplayMessage decoded, ulong generation)
-        {
-            _entities.Clear();
-            string roomId = _hasSelf ? _self.RoomId : string.Empty;
-            for (int i = 0; i < decoded.Blocks.Length; i++)
-            {
-                DecodedGameplayBlock block = decoded.Blocks[i];
-                if (!block.HasIdentity)
-                {
-                    continue;
-                }
-
-                DecodedIdentityRecord[] records = block.IdentityRecords;
-                for (int r = 0; r < records.Length; r++)
-                {
-                    DecodedIdentityRecord record = records[r];
-                    string id = record.NetEntityId.ToString(CultureInfo.InvariantCulture);
-                    var attributes = new Dictionary<string, string>(StringComparer.Ordinal)
+                    DecodedIdentityRecord[] records = block.IdentityRecords;
+                    for (int r = 0; r < records.Length; r++)
                     {
-                        ["EntityIdentity.entityType"] = record.EntityType,
-                        ["EntityIdentity.unmappedMark"] = record.UnmappedMark ?? string.Empty
-                    };
-                    _entities[id] = new EntityRecord(
-                        id,
-                        record.EntityType,
-                        roomId,
-                        generation,
-                        decoded.Revision,
-                        decoded.TickId,
-                        true,
-                        false,
-                        attributes);
+                        DecodedIdentityRecord record = records[r];
+                        var id = new NetEntityId(instanceId, record.NetEntityId);
+                        creates.Add(new CreateRecord(record.EntityType, id, Array.Empty<FieldValue>()));
+                    }
                 }
+
+                if (block.HasChatEvent)
+                {
+                    DecodedChatEvent chat = block.ChatEvent;
+                    if (!ReplicaNetIds.TryParse(chat.SenderNetEntityId, instanceId, out NetEntityId sender))
+                    {
+                        sender = new NetEntityId(instanceId, 0UL);
+                    }
+
+                    rpcs.Add(new ClientRpcRecord(
+                        sender,
+                        "ChatComponent",
+                        "OnChatMessage",
+                        new object[] { chat.Text },
+                        chat.MessageId,
+                        chat.RoomSequence,
+                        sender,
+                        chat.AppliedTick));
+                    chatLines.Add(new ReplicaChatLine(chat.MessageId, chat.RoomSequence, chat.SenderNetEntityId, chat.Text, chat.AppliedTick));
+                    _lastRoomSequence = chat.RoomSequence;
+                    _lastMessageId = chat.MessageId;
+                }
+            }
+
+            var destroys = new List<NetEntityId>();
+            ReadOnlySpan<ulong> tombstones = request.TombstoneEntityIds.Span;
+            for (int i = 0; i < tombstones.Length; i++)
+            {
+                destroys.Add(new NetEntityId(instanceId, tombstones[i]));
+            }
+
+            ApplyPack(
+                decoded.TickId,
+                creates,
+                Array.Empty<FieldChange>(),
+                destroys,
+                rpcs,
+                bindSelf: request.Kind == ReplicaUpdateKind.FullSnapshot && _hasSelf);
+            for (int i = 0; i < chatLines.Count; i++)
+            {
+                _chat.Add(chatLines[i]);
+            }
+
+            if (request.Kind == ReplicaUpdateKind.FullSnapshot && !_superseded)
+            {
+                _inputEnabled = true;
             }
         }
 
-        private void ApplyTombstones(ReadOnlyMemory<ulong> tombstoneEntityIds)
+        private void ApplyPack(
+            ulong tick,
+            List<CreateRecord> creates,
+            IReadOnlyList<FieldChange> fields,
+            List<NetEntityId> destroys,
+            IReadOnlyList<ClientRpcRecord> rpcs,
+            bool bindSelf)
         {
-            ReadOnlySpan<ulong> span = tombstoneEntityIds.Span;
-            for (int i = 0; i < span.Length; i++)
+            if (bindSelf && _hasSelf && ReplicaNetIds.TryParse(_self.NetEntityId, _manager.World.InstanceId, out NetEntityId selfId))
             {
-                string id = span[i].ToString(CultureInfo.InvariantCulture);
-                if (_entities.TryGetValue(id, out EntityRecord entity))
-                {
-                    entity.Tombstoned = true;
-                    _entities[id] = entity;
-                }
+                _manager.Enqueue(new WelcomeMessage(_manager.World.InstanceId, selfId, "self"));
             }
+
+            _manager.Enqueue(new WorldChangeMessage(tick, creates, fields, destroys, rpcs));
+            _manager.Tick();
+        }
+
+        private void RecreateManager()
+        {
+            _manager.Dispose();
+            _manager = ClientBootstrap.Boot();
+            if (_hasClaim)
+            {
+                _manager.GrantClaim("self", "EntityIdentity.claimedMark");
+            }
+        }
+
+        private string ReadAttribute(NetEntityId id, string attributeId)
+        {
+            if (string.Equals(attributeId, "EntityIdentity.entityType", StringComparison.Ordinal))
+            {
+                return _manager.Registry.WireName(_manager.World.TypeOf(id).ClrType);
+            }
+
+            if (string.Equals(attributeId, "EntityIdentity.unmappedMark", StringComparison.Ordinal))
+            {
+                return string.Empty;
+            }
+
+            if (string.Equals(attributeId, "EntityIdentity.claimedMark", StringComparison.Ordinal))
+            {
+                return "mark";
+            }
+
+            int dot = attributeId.IndexOf('.');
+            if (dot <= 0)
+            {
+                return string.Empty;
+            }
+
+            string componentId = attributeId.Substring(0, dot);
+            string fieldId = attributeId.Substring(dot + 1);
+            Component? component = _manager.World.NamedComponent(id, componentId);
+            if (component == null)
+            {
+                return string.Empty;
+            }
+
+            IGeneratedComponent? generated = EcsRegistry.Generated(component);
+            object? value = generated != null ? generated.ReadField(fieldId) : null;
+            return value == null ? string.Empty : Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
         }
 
         private ReplicaAdmissionResult RejectAdmission(string code)
@@ -392,7 +500,7 @@ namespace Lumio.Client.Replica
                 || string.Equals(entityType, "bot", StringComparison.Ordinal);
         }
 
-        private static string ClassifyAttributeId(string attributeId)
+        private string ClassifyAttributeId(string attributeId)
         {
             if (string.IsNullOrEmpty(attributeId) || Encoding.UTF8.GetByteCount(attributeId) > MaxAttributeIdBytes)
             {
@@ -412,12 +520,29 @@ namespace Lumio.Client.Replica
                 return "invalid_attribute_id";
             }
 
-            if (!AttributeDeclarationTable.TryGet(attributeId, out _))
+            FieldAttributeDeclaration unused;
+            if (!TryGetDeclaration(attributeId, out unused))
             {
                 return "undeclared_attribute";
             }
 
             return string.Empty;
+        }
+
+        private bool TryGetDeclaration(string attributeId, out FieldAttributeDeclaration declaration)
+        {
+            IReadOnlyList<FieldAttributeDeclaration> rows = _manager.Registry.AttributeDeclarations;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                if (string.Equals(rows[i].AttributeId, attributeId, StringComparison.Ordinal))
+                {
+                    declaration = rows[i];
+                    return true;
+                }
+            }
+
+            declaration = default(FieldAttributeDeclaration);
+            return false;
         }
 
         private static ReplicaAttributeQueryResult RequestError(string code)
@@ -444,70 +569,6 @@ namespace Lumio.Client.Replica
                 string.Empty,
                 0UL,
                 0UL);
-        }
-
-        private sealed class EntityRecord
-        {
-            public EntityRecord(
-                string netEntityId,
-                string entityType,
-                string roomId,
-                ulong connectionGeneration,
-                ulong revision,
-                ulong tick,
-                bool inAoi,
-                bool tombstoned,
-                Dictionary<string, string> attributes)
-            {
-                NetEntityId = netEntityId;
-                EntityType = entityType;
-                RoomId = roomId;
-                ConnectionGeneration = connectionGeneration;
-                Revision = revision;
-                Tick = tick;
-                InAoi = inAoi;
-                Tombstoned = tombstoned;
-                Attributes = attributes;
-            }
-
-            public string NetEntityId { get; }
-
-            public string EntityType { get; }
-
-            public string RoomId { get; }
-
-            public ulong ConnectionGeneration { get; }
-
-            public ulong Revision { get; }
-
-            public ulong Tick { get; }
-
-            public bool InAoi { get; }
-
-            public bool Tombstoned { get; set; }
-
-            public Dictionary<string, string> Attributes { get; }
-
-            public static EntityRecord FromVisible(in ReplicaVisibleEntity visible)
-            {
-                var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
-                ReplicaAttributeValue[] values = visible.Attributes ?? Array.Empty<ReplicaAttributeValue>();
-                for (int i = 0; i < values.Length; i++)
-                {
-                    attributes[values[i].AttributeId] = values[i].Value ?? string.Empty;
-                }
-
-                return new EntityRecord(
-                    visible.NetEntityId,
-                    visible.EntityType,
-                    visible.RoomId,
-                    visible.ConnectionGeneration,
-                    visible.Revision,
-                    visible.Tick,
-                    visible.InAoi,
-                    visible.Tombstoned,
-                    attributes);
-            }
         }
     }
 }

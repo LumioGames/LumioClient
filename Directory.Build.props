@@ -13,5 +13,6 @@
     <LangVersion>9.0</LangVersion>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <LumioRuntimeRoot Condition="'$(LumioRuntimeRoot)' == '' AND Exists('$(MSBuildThisFileDirectory)..\LumioGameRuntime')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\LumioGameRuntime'))</LumioRuntimeRoot>
   </PropertyGroup>
 </Project>

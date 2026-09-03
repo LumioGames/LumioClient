@@ -26,7 +26,7 @@ public sealed class EntityBindingQueryContractTests
         ReplicaVisibleEntity bot = GameplayWireFixtures.Entity("101", "bot", "room-01", 1, 1, 0);
         ReplicaVisibleEntity otherRoom = GameplayWireFixtures.Entity("N7", "player", "room-02", 1, 1, 0);
         ReplicaVisibleEntity outOfAoi = GameplayWireFixtures.Entity("N5", "player", "room-01", 1, 1, 0, inAoi: false);
-        ReplicaVisibleEntity tombstoned = GameplayWireFixtures.Entity("N1-dead", "player", "room-01", 1, 1, 0, tombstoned: true);
+        ReplicaVisibleEntity tombstoned = GameplayWireFixtures.Entity("201", "player", "room-01", 1, 1, 0, tombstoned: true);
         Assert.True(consumer.World.InstallAdmission(
             new ReplicaAdmission(
                 new ReplicaBinding("acct-07", "room-01", "1", "player", 1),
@@ -38,13 +38,13 @@ public sealed class EntityBindingQueryContractTests
                     outOfAoi,
                     tombstoned,
                     new ReplicaVisibleEntity(
-                        "N-claim",
+                        "301",
                         "player",
                         "room-01",
                         1,
                         1,
                         0,
-                        new[] { new ReplicaAttributeValue("EntityIdentity.restrictedFlag", "secret") },
+                        new[] { new ReplicaAttributeValue("EntityIdentity.claimedMark", "secret") },
                         true,
                         false)
                 })).Accepted);
@@ -93,14 +93,14 @@ public sealed class EntityBindingQueryContractTests
                 true)),
             "invalid_binding_shape");
         Assert.Equal(
-            ReplicaQueryStatus.Invisible,
+            ReplicaQueryStatus.NonExistent,
             consumer.World.QueryAttribute(new ReplicaAttributeQuery("client-replica", "room-01", "N5", "EntityIdentity.entityType")).Status);
         Assert.Equal(
             ReplicaQueryStatus.Tombstoned,
-            consumer.World.QueryAttribute(new ReplicaAttributeQuery("client-replica", "room-01", "N1-dead", "EntityIdentity.entityType")).Status);
+            consumer.World.QueryAttribute(new ReplicaAttributeQuery("client-replica", "room-01", "201", "EntityIdentity.entityType")).Status);
         Assert.Equal(
             ReplicaQueryStatus.Unauthorized,
-            consumer.World.QueryAttribute(new ReplicaAttributeQuery("client-replica", "room-01", "N-claim", "EntityIdentity.restrictedFlag")).Status);
+            consumer.World.QueryAttribute(new ReplicaAttributeQuery("client-replica", "room-01", "301", "EntityIdentity.claimedMark")).Status);
         Assert.Equal(
             ReplicaQueryStatus.NonExistent,
             consumer.World.QueryAttribute(new ReplicaAttributeQuery("client-replica", "room-01", "N9", "EntityIdentity.entityType")).Status);

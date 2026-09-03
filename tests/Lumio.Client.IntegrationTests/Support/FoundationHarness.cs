@@ -15,7 +15,7 @@ internal static class FoundationTestBytes
 
     public static readonly byte[] Reject = { 0x5A, 0xC3, 0x0E, 0xF4 };
 
-    public static readonly byte[] Snapshot = { 0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE };
+    public static readonly byte[] Snapshot = Lumio.Client.Replica.ReplicaC1Frames.EmptyFullSnapshot;
 
     public static readonly byte[] Gap = { 0x91, 0xA9, 0xB0, 0xC3 };
 }
