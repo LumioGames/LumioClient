@@ -8,6 +8,9 @@
     <RootNamespace>Lumio.Client.Bot.Host</RootNamespace>
     <AssemblyName>Lumio.Client.Bot.Host</AssemblyName>
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumio.Client.Bot.Tests" />
+  </ItemGroup>
   <PropertyGroup>
     <LumioEngineSdkCsproj Condition="'$(LUMIO_ENGINE_SDK_PROJECT)' != ''">$(LUMIO_ENGINE_SDK_PROJECT)</LumioEngineSdkCsproj>
     <LumioArchRoot Condition="'$(LumioArchRoot)' == ''">$(LUMIO_ARCH_ROOT)</LumioArchRoot>

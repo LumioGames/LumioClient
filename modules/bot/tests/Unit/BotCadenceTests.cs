@@ -107,6 +107,84 @@ public sealed class BotCadenceTests
     }
 
     [Fact]
+    public void ProductionResidentLoopTicksAndLogsChatInputAfterAwait()
+    {
+        IClientReplica replica = new ClientReplicaFactory().Create();
+        replica.ResetForNewSession(new ReplicaResetRequest(1));
+        IReplicaWorld world = replica.World;
+        var admission = new ReplicaAdmission(
+            new ReplicaBinding("acct-07", "room-01", "1", "player", 1),
+            new[]
+            {
+                new ReplicaVisibleEntity("1", "player", "room-01", 1, 1, 0, Array.Empty<ReplicaAttributeValue>(), true, false)
+            });
+        Assert.True(world.InstallAdmission(in admission).Accepted);
+        Assert.True(CommitEmptySnapshot(replica));
+        NetEntityId self = world.Manager.World.Self.Id;
+        world.Manager.Enqueue(new WorldChangeMessage(
+            1UL,
+            new[] { new CreateRecord("player", self, Array.Empty<FieldValue>()) },
+            Array.Empty<FieldChange>(),
+            Array.Empty<NetEntityId>(),
+            Array.Empty<ClientRpcRecord>()));
+        world.Manager.Tick();
+        Assert.True(world.InputEnabled);
+
+        string logDir = Path.Combine(Path.GetTempPath(), "lumio-bot-owner-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(logDir);
+        string logPath = Path.Combine(logDir, "bot-host.ndjson");
+        string releaseFlag = Path.Combine(logDir, "release.flag");
+        int owner = Environment.CurrentManagedThreadId;
+        var threadIds = new List<int>();
+        var abi = new C4TickFrameAbi();
+        using var timer = new ClientTimerManager(abi);
+        Assert.True(timer.ScheduleBotChatCadence());
+        var session = new WorldBackedSession(world);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        int code = BotHostOwnerPump.Run(async () =>
+        {
+            await BotHostResidentLoop.RunAsync(
+                new[] { new ResidentBot("Bot01", session) },
+                timer,
+                logPath,
+                releaseFlag,
+                async cancellationToken =>
+                {
+                    threadIds.Add(Environment.CurrentManagedThreadId);
+                    await Task.Delay(5, cancellationToken);
+                    threadIds.Add(Environment.CurrentManagedThreadId);
+                    if (File.Exists(logPath)
+                        && File.ReadAllText(logPath).Contains("\"kind\":\"chat.input\"", StringComparison.Ordinal))
+                    {
+                        File.WriteAllText(releaseFlag, "1");
+                    }
+                },
+                timeout.Token);
+            return 0;
+        });
+
+        try
+        {
+            Assert.Equal(0, code);
+            Assert.NotEmpty(threadIds);
+            Assert.All(threadIds, id => Assert.Equal(owner, id));
+            Assert.True(File.Exists(logPath));
+            string log = File.ReadAllText(logPath);
+            Assert.Contains("\"kind\":\"chat.input\"", log, StringComparison.Ordinal);
+            Assert.Contains("\"tickSource\":\"native-kernel/tickFrame\"", log, StringComparison.Ordinal);
+            Assert.Contains("\"accountId\":\"Bot01\"", log, StringComparison.Ordinal);
+            IReadOnlyList<WorldMessage> outbound = world.DrainOutbound();
+            Assert.Contains(outbound, message => message is InputCommandMessage input
+                && string.Equals(input.MappingId, "chat.input", StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(logDir, true);
+        }
+    }
+
+    [Fact]
     public async Task MissingEngineNativeIsBlocked()
     {
         string logDir = Path.Combine(Path.GetTempPath(), "lumio-bot-" + Guid.NewGuid().ToString("N"));
@@ -244,6 +322,71 @@ public sealed class BotCadenceTests
         public SequencedInputSample[] DrainAccepted()
         {
             return Array.Empty<SequencedInputSample>();
+        }
+    }
+
+    private sealed class WorldBackedSession : IClientSession
+    {
+        private readonly IReplicaWorld _world;
+
+        public WorldBackedSession(IReplicaWorld world)
+        {
+            _world = world;
+        }
+
+        public SessionCommandResult RequestConnect(in SessionConnectRequest request, CancellationToken cancellationToken)
+        {
+            _ = request;
+            cancellationToken.ThrowIfCancellationRequested();
+            return new SessionCommandResult(true);
+        }
+
+        public SessionTickResult Tick(in ClientOwnerTick tick)
+        {
+            _ = tick;
+            return new SessionTickResult(ClientSessionState.Active);
+        }
+
+        public SessionCommandResult RequestClose(in SessionCloseRequest request)
+        {
+            _ = request;
+            return new SessionCommandResult(true);
+        }
+
+        public SessionCommandResult Login(in SessionConnectRequest request, CancellationToken cancellationToken)
+        {
+            return RequestConnect(in request, cancellationToken);
+        }
+
+        public bool TryDequeueSuperseded(out SessionSupersededNotice notice)
+        {
+            notice = default;
+            return false;
+        }
+
+        public bool TryGetReplicaWorld(out IReplicaWorld world)
+        {
+            world = _world;
+            return true;
+        }
+
+        public ClientSessionSnapshot GetSnapshot()
+        {
+            return new ClientSessionSnapshot(
+                ClientSessionState.Active,
+                1,
+                true,
+                0,
+                true,
+                true,
+                false,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                Array.Empty<string>());
         }
     }
 

@@ -7,7 +7,6 @@ using Lumio.Client.Persistence;
 using Lumio.Client.Prediction;
 using Lumio.Client.Replica;
 using Lumio.Client.Session;
-using Lumio.GameRuntime.Samples.Username.Components.Chat;
 #if LUMIO_ENGINE_SDK
 using Lumio.Engine.SDK;
 #endif
@@ -29,7 +28,7 @@ public static class FoundationHostCommand
         HostArgs parsed = HostArgs.Parse(args);
         if (parsed.Production)
         {
-            return await RunProductionAsync(parsed, cancellationToken).ConfigureAwait(false);
+            return BotHostOwnerPump.Run(() => RunProductionAsync(parsed, cancellationToken));
         }
 
         if (!parsed.Foundation)
@@ -146,40 +145,19 @@ public static class FoundationHostCommand
             bots.Add(CreateProductionBot(parsed.Server, account));
         }
 
-        ulong tick = 0;
-        while (!cancellationToken.IsCancellationRequested && !File.Exists(releaseFlag))
+        var residents = new ResidentBot[bots.Count];
+        for (int i = 0; i < bots.Count; i++)
         {
-            tick++;
-            for (int i = 0; i < bots.Count; i++)
-            {
-                bots[i].Session.Tick(new ClientOwnerTick(tick));
-            }
-
-            IReadOnlyList<ulong> dues = timer.Advance(tick);
-            for (int d = 0; d < dues.Count; d++)
-            {
-                for (int i = 0; i < bots.Count; i++)
-                {
-                    ProductionBot bot = bots[i];
-                    if (!bot.Session.TryGetReplicaWorld(out IReplicaWorld world) || !world.InputEnabled)
-                    {
-                        continue;
-                    }
-
-                    try
-                    {
-                        world.Manager.World.Self.Get<ChatComponent>().SendMessage("bot-" + dues[d].ToString(System.Globalization.CultureInfo.InvariantCulture));
-                        world.Manager.Tick();
-                        AppendChatInputLog(logPath, dues[d], bot.AccountId);
-                    }
-                    catch (InvalidOperationException)
-                    {
-                    }
-                }
-            }
-
-            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+            residents[i] = new ResidentBot(bots[i].AccountId, bots[i].Session);
         }
+
+        await BotHostResidentLoop.RunAsync(
+            residents,
+            timer,
+            logPath,
+            releaseFlag,
+            static ct => Task.Delay(1, ct),
+            cancellationToken);
 
         for (int i = 0; i < bots.Count; i++)
         {
@@ -219,16 +197,6 @@ public static class FoundationHostCommand
         session.Login(new SessionConnectRequest(1, endpoint), CancellationToken.None);
         _ = account;
         return new ProductionBot(account, session);
-    }
-
-    private static void AppendChatInputLog(string path, ulong tick, string accountId)
-    {
-        string line = "{\"ts\":\"" + DateTime.UtcNow.ToString("o") +
-                      "\",\"kind\":\"chat.input\",\"tick\":" + tick.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-                      ",\"tickSource\":\"native-kernel/tickFrame\",\"pid\":" +
-                      Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-                      ",\"accountId\":\"" + accountId + "\"}\n";
-        File.AppendAllText(path, line);
     }
 
     private static IEnumerable<string> EnumerateAccounts(string from, string to)
