@@ -3,11 +3,38 @@ namespace Lumio.Client.Session
     public readonly struct SessionConnectRequest
     {
         public SessionConnectRequest(ulong generation)
+            : this(generation, default(Lumio.Client.Connection.ClientEndpoint))
+        {
+        }
+
+        public SessionConnectRequest(ulong generation, Lumio.Client.Connection.ClientEndpoint endpoint)
         {
             Generation = generation;
+            Endpoint = endpoint;
         }
 
         public ulong Generation { get; }
+
+        public Lumio.Client.Connection.ClientEndpoint Endpoint { get; }
+    }
+
+    public readonly struct SessionSupersededNotice
+    {
+        public SessionSupersededNotice(bool received, string reasonCode, string netEntityId, ulong newConnectionGeneration)
+        {
+            Received = received;
+            ReasonCode = reasonCode ?? string.Empty;
+            NetEntityId = netEntityId ?? string.Empty;
+            NewConnectionGeneration = newConnectionGeneration;
+        }
+
+        public bool Received { get; }
+
+        public string ReasonCode { get; }
+
+        public string NetEntityId { get; }
+
+        public ulong NewConnectionGeneration { get; }
     }
 
     public readonly struct SessionCloseRequest

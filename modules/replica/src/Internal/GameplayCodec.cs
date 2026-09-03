@@ -169,6 +169,11 @@ namespace Lumio.Client.Replica
                 return false;
             }
 
+            if (!LiteJsonParser.LooksLikeObject(utf8.Span))
+            {
+                return false;
+            }
+
             if (!LiteJsonParser.TryParse(utf8.Span, out LiteNode root) || root.Kind != LiteKind.Object)
             {
                 return false;
@@ -425,7 +430,8 @@ namespace Lumio.Client.Replica
             int offset = 0;
             if (!TryReadUInt64(payload, ref offset, out ulong messageId)
                 || !TryReadUInt64(payload, ref offset, out ulong roomSequence)
-                || !TryReadUInt64(payload, ref offset, out ulong sender)
+                || !TryReadUInt64(payload, ref offset, out ulong senderInstanceId)
+                || !TryReadUInt64(payload, ref offset, out ulong senderCounter)
                 || !TryReadString(payload, ref offset, out string text)
                 || !TryReadUInt64(payload, ref offset, out ulong appliedTick)
                 || offset != payload.Length)
@@ -444,7 +450,7 @@ namespace Lumio.Client.Replica
             chatEvent = new DecodedChatEvent(
                 messageId,
                 roomSequence,
-                sender.ToString(CultureInfo.InvariantCulture),
+                ReplicaNetIds.Format(new Lumio.GameRuntime.Ecs.NetEntityId(senderInstanceId, senderCounter)),
                 text,
                 appliedTick);
             rejectCode = string.Empty;

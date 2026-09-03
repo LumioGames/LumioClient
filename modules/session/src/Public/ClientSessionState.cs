@@ -10,6 +10,7 @@ namespace Lumio.Client.Session
         Resyncing,
         Reconnecting,
         Closed,
-        Faulted
+        Faulted,
+        Superseded
     }
 }

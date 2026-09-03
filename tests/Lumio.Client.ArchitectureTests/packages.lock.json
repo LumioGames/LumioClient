@@ -209,7 +209,10 @@
         "dependencies": {
           "Lumio.Client.Input": "[1.0.0, )",
           "Lumio.Client.Observability": "[1.0.0, )",
-          "Lumio.Client.Session": "[1.0.0, )"
+          "Lumio.Client.Session": "[1.0.0, )",
+          "Lumio.GameRuntime.Ecs": "[1.0.0, )",
+          "Lumio.GameRuntime.Replication": "[1.0.0, )",
+          "Lumio.GameRuntime.Samples.Username.Client": "[1.0.0, )"
         }
       },
       "lumio.client.connection": {
@@ -256,7 +259,10 @@
       "lumio.client.replica": {
         "type": "Project",
         "dependencies": {
-          "Lumio.Client.Observability": "[1.0.0, )"
+          "Lumio.Client.Observability": "[1.0.0, )",
+          "Lumio.GameRuntime.Ecs": "[1.0.0, )",
+          "Lumio.GameRuntime.Replication": "[1.0.0, )",
+          "Lumio.GameRuntime.Samples.Username.Client": "[1.0.0, )"
         }
       },
       "lumio.client.session": {
@@ -277,6 +283,73 @@
           "Lumio.Client.Input": "[1.0.0, )",
           "Lumio.Client.Observability": "[1.0.0, )",
           "Lumio.Client.Session": "[1.0.0, )"
+        }
+      },
+      "lumio.gameruntime.command": {
+        "type": "Project",
+        "dependencies": {
+          "Lumio.GameRuntime.Ecs": "[1.0.0, )",
+          "Lumio.GameRuntime.GeneratedContracts": "[1.0.0, )",
+          "Lumio.GameRuntime.Observability": "[1.0.0, )"
+        }
+      },
+      "lumio.gameruntime.config": {
+        "type": "Project",
+        "dependencies": {
+          "Lumio.GameRuntime.GeneratedContracts": "[1.0.0, )",
+          "Lumio.GameRuntime.Observability": "[1.0.0, )"
+        }
+      },
+      "lumio.gameruntime.coordination": {
+        "type": "Project",
+        "dependencies": {
+          "Lumio.GameRuntime.Command": "[1.0.0, )",
+          "Lumio.GameRuntime.Ecs": "[1.0.0, )",
+          "Lumio.GameRuntime.GeneratedContracts": "[1.0.0, )",
+          "Lumio.GameRuntime.Observability": "[1.0.0, )"
+        }
+      },
+      "lumio.gameruntime.ecs": {
+        "type": "Project",
+        "dependencies": {
+          "Lumio.GameRuntime.GeneratedContracts": "[1.0.0, )"
+        }
+      },
+      "lumio.gameruntime.gas": {
+        "type": "Project",
+        "dependencies": {
+          "Lumio.GameRuntime.Command": "[1.0.0, )",
+          "Lumio.GameRuntime.Config": "[1.0.0, )",
+          "Lumio.GameRuntime.Ecs": "[1.0.0, )",
+          "Lumio.GameRuntime.GeneratedContracts": "[1.0.0, )",
+          "Lumio.GameRuntime.Observability": "[1.0.0, )"
+        }
+      },
+      "lumio.gameruntime.generatedcontracts": {
+        "type": "Project"
+      },
+      "lumio.gameruntime.observability": {
+        "type": "Project",
+        "dependencies": {
+          "Lumio.GameRuntime.GeneratedContracts": "[1.0.0, )"
+        }
+      },
+      "lumio.gameruntime.replication": {
+        "type": "Project",
+        "dependencies": {
+          "Lumio.GameRuntime.Command": "[1.0.0, )",
+          "Lumio.GameRuntime.Config": "[1.0.0, )",
+          "Lumio.GameRuntime.Coordination": "[1.0.0, )",
+          "Lumio.GameRuntime.Ecs": "[1.0.0, )",
+          "Lumio.GameRuntime.Gas": "[1.0.0, )",
+          "Lumio.GameRuntime.GeneratedContracts": "[1.0.0, )",
+          "Lumio.GameRuntime.Observability": "[1.0.0, )"
+        }
+      },
+      "lumio.gameruntime.samples.username.client": {
+        "type": "Project",
+        "dependencies": {
+          "Lumio.GameRuntime.Ecs": "[1.0.0, )"
         }
       }
     }

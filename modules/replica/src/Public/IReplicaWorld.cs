@@ -1,9 +1,14 @@
 using System.Collections.Generic;
+using Lumio.GameRuntime.Ecs;
 
 namespace Lumio.Client.Replica
 {
     public interface IReplicaWorld
     {
+        WorldManager Manager { get; }
+
+        IReadOnlyList<WorldMessage> DrainOutbound();
+
         ReplicaAdmissionResult InstallAdmission(in ReplicaAdmission admission);
 
         ReplicaBindingLookup SelfLookup();

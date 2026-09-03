@@ -22,7 +22,8 @@ namespace Lumio.Client.Session
 
             if (state == ClientSessionState.Synchronizing || state == ClientSessionState.Resyncing)
             {
-                return kind == SessionMessageKind.FullSnapshot;
+                return kind == SessionMessageKind.FullSnapshot
+                    || kind == SessionMessageKind.ConnectionSuperseded;
             }
 
             if (state == ClientSessionState.Active)
@@ -30,7 +31,8 @@ namespace Lumio.Client.Session
                 return kind == SessionMessageKind.Delta
                     || kind == SessionMessageKind.Gap
                     || kind == SessionMessageKind.AuthorityUpdate
-                    || kind == SessionMessageKind.FullSnapshot;
+                    || kind == SessionMessageKind.FullSnapshot
+                    || kind == SessionMessageKind.ConnectionSuperseded;
             }
 
             RejectedCalls++;

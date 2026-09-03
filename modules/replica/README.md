@@ -16,7 +16,7 @@
 - 维护客户端 Baseline、SnapshotId、ReplicationRevision、Sequence 和 Mapping Hash 视图。
 - 使用生成 Mapping 将 Server Component 投影到允许的 Client Component/Field。
 - 维护 `NetEntityId -> LocalEntityId` 映射、Destroy Tombstone 和 provisional ID 确认重映射。
-- 为每个连接维护独立 `ReplicaWorld`：准入绑定、可见实体投影、client-replica Attribute Query、以及仅经权威事务提交后追加的 Room 聊天呈现（投递闸是 C-1 信封/序号，不是接收方 sender AOI）。FullSnapshot 按 `entity.identity` 普查重建实体集并清空聊天窗；`ConnectionSuperseded` 停止输入且不自动重连。
+- 为每个连接维护独立 `ReplicaWorld` 薄门面：持有 Runtime `WorldManager`（`ClientBootstrap.Boot()`，不传 instanceId）。FullSnapshot/Delta 解码为创建/字段变化/销毁 + ClientRpc 后 `Enqueue`；Attribute Query 读 Runtime 声明表与世界字段。`ConnectionSuperseded` 停止输入且不自动重连。
 - 检测 Gap、未知 Baseline、旧 Revision、重复/迟到 Delta、Mapping 不匹配和 Tombstone 冲突。
 - 输出 Apply Result、BaselineAck/DeltaAck 或明确的 ResyncRequest 原因。
 
@@ -87,5 +87,5 @@
 ## 目录
 
 - `src/Public`：`IClientReplica`、`ReplicaWorld` / `IReplicaWorld`、`ReplicaChatConsumer`。
-- `src/Internal`：权威 Stage/Observe、C-1 信封解码、C-2 属性声明表。
+- `src/Internal`：权威 Stage/Observe、C-1 信封解码。C-2 声明表来自 Runtime 生成注册表，本模块不手写。
 - 生成 Contract 和 Mapping 是外部构建产物，不复制到本模块维护第二套源文件。C-1/C-2 living wire JSON 由测试定位架构仓 `origin/main`，本仓不内嵌协议副本。

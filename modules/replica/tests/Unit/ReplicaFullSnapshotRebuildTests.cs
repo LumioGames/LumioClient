@@ -50,7 +50,7 @@ public sealed class ReplicaFullSnapshotRebuildTests
         Assert.Equal(2, census.Count);
         Assert.Equal(new[] { "101", "102" }, census.Select(r => r.NetEntityId).ToArray());
         Assert.Equal(new[] { "player", "bot" }, census.Select(r => r.EntityType).ToArray());
-        Assert.Equal(new[] { "a", "b" }, census.Select(r => r.UnmappedMark).ToArray());
+        Assert.Equal(new[] { string.Empty, string.Empty }, census.Select(r => r.UnmappedMark).ToArray());
         Assert.Equal(2, consumer.World.VisibleEntityCount);
         Assert.Empty(consumer.ChatWindow);
         Assert.True(consumer.World.InputEnabled);
@@ -63,7 +63,7 @@ public sealed class ReplicaFullSnapshotRebuildTests
             consumer.World.QueryAttribute(
                 new ReplicaAttributeQuery("client-replica", "room-01", "101", "EntityIdentity.entityType")).Value);
         Assert.Equal(
-            "a",
+            string.Empty,
             consumer.World.QueryAttribute(
                 new ReplicaAttributeQuery("client-replica", "room-01", "101", "EntityIdentity.unmappedMark")).Value);
         Assert.Equal(

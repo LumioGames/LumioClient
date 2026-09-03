@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Lumio.Client.Connection;
 using Lumio.Client.Handshake;
 using Lumio.Client.Prediction;
 using Lumio.Client.Replica;
+using Lumio.GameRuntime.Ecs;
 
 namespace Lumio.Client.Session
 {
@@ -41,6 +43,10 @@ namespace Lumio.Client.Session
         private int _runtimeCalls;
         private int _drainLimit = ClientConnectionCreateRequest.DefaultDrainLimit;
         private ulong _snapshotSequence;
+        private ClientEndpoint _endpoint;
+        private bool _superseded;
+        private SessionSupersededNotice _pendingSuperseded;
+        private bool _hasPendingSuperseded;
 
         public ClientSession(ClientSessionDependencies dependencies)
         {
@@ -52,6 +58,11 @@ namespace Lumio.Client.Session
             cancellationToken.ThrowIfCancellationRequested();
             lock (_gate)
             {
+                if (_machine.State == ClientSessionState.Superseded)
+                {
+                    return new SessionCommandResult(false);
+                }
+
                 if (_machine.IsTerminal && _machine.State != ClientSessionState.Closed)
                 {
                     return new SessionCommandResult(false);
@@ -69,6 +80,27 @@ namespace Lumio.Client.Session
                     _terminal.Unfreeze();
                 }
 
+                _endpoint = request.Endpoint;
+                return StartGeneration(request.Generation == 0 ? 1UL : request.Generation);
+            }
+        }
+
+        public SessionCommandResult Login(in SessionConnectRequest request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_gate)
+            {
+                if (_machine.State != ClientSessionState.Superseded
+                    && _machine.State != ClientSessionState.Closed
+                    && _machine.State != ClientSessionState.Disconnected)
+                {
+                    return new SessionCommandResult(false);
+                }
+
+                _superseded = false;
+                _hasPendingSuperseded = false;
+                _terminal.Unfreeze();
+                _endpoint = request.Endpoint;
                 return StartGeneration(request.Generation == 0 ? 1UL : request.Generation);
             }
         }
@@ -105,7 +137,7 @@ namespace Lumio.Client.Session
                         Dispatch(in next);
                     }
 
-                    if (_machine.State == ClientSessionState.Active)
+                    if (_machine.State == ClientSessionState.Active && !_superseded)
                     {
                         _localPrediction.Tick(
                             _dependencies.Commands,
@@ -113,6 +145,7 @@ namespace Lumio.Client.Session
                             _dependencies.Runtime,
                             _connection,
                             _machine.Generation);
+                        DrainReplicaOutbound();
                     }
                 }
 
@@ -168,6 +201,37 @@ namespace Lumio.Client.Session
             }
         }
 
+        public bool TryDequeueSuperseded(out SessionSupersededNotice notice)
+        {
+            lock (_gate)
+            {
+                if (!_hasPendingSuperseded)
+                {
+                    notice = default(SessionSupersededNotice);
+                    return false;
+                }
+
+                notice = _pendingSuperseded;
+                _hasPendingSuperseded = false;
+                return true;
+            }
+        }
+
+        public bool TryGetReplicaWorld(out IReplicaWorld world)
+        {
+            lock (_gate)
+            {
+                if (_replica == null)
+                {
+                    world = null!;
+                    return false;
+                }
+
+                world = _replica.World;
+                return true;
+            }
+        }
+
         private SessionCommandResult StartGeneration(ulong generation)
         {
             _generations.Seed(generation);
@@ -177,7 +241,11 @@ namespace Lumio.Client.Session
             _presented = false;
             _snapshotSequence = 0;
             _machine.TryEnter(ClientSessionState.Connecting);
-            var connectionRequest = new ClientConnectionCreateRequest(generation, ClientConnectionCreateRequest.DefaultEventCapacity);
+            var connectionRequest = new ClientConnectionCreateRequest(
+                generation,
+                ClientConnectionCreateRequest.DefaultEventCapacity,
+                ClientConnectionCreateRequest.DefaultDrainLimit,
+                _endpoint);
             _drainLimit = connectionRequest.DrainLimit;
             ClientConnectionCreateResult created = _dependencies.Connections.Create(
                 in connectionRequest,
@@ -216,7 +284,15 @@ namespace Lumio.Client.Session
             if (evt.Priority == SessionEventPriority.ForcedClose || evt.Priority == SessionEventPriority.Cancel)
             {
                 ReleaseAll();
-                _machine.TryEnter(ClientSessionState.Closed);
+                if (_superseded)
+                {
+                    _machine.TryEnter(ClientSessionState.Superseded);
+                }
+                else
+                {
+                    _machine.TryEnter(ClientSessionState.Closed);
+                }
+
                 _terminal.Freeze();
                 return;
             }
@@ -275,6 +351,12 @@ namespace Lumio.Client.Session
 
             if (!_messageGate.Allow(_machine.State, evt.Generation, _machine.Generation, kind))
             {
+                return;
+            }
+
+            if (kind == SessionMessageKind.ConnectionSuperseded)
+            {
+                HandleConnectionSuperseded(evt.Connection.Frame.Bytes);
                 return;
             }
 
@@ -341,14 +423,75 @@ namespace Lumio.Client.Session
             }
         }
 
+        private void HandleConnectionSuperseded(ReadOnlyMemory<byte> utf8)
+        {
+            ReplicaConnectionSuperseded observed;
+            if (_replica == null || !_replica.TryObserveConnectionSuperseded(utf8, out observed) || !observed.Received)
+            {
+                return;
+            }
+
+            _superseded = true;
+            _pendingSuperseded = new SessionSupersededNotice(
+                observed.Received,
+                observed.ReasonCode,
+                observed.NetEntityId,
+                observed.NewConnectionGeneration);
+            _hasPendingSuperseded = true;
+            if (_connection != null)
+            {
+                _connection.RequestClose(ConnectionCloseReason.OwnerRequest);
+            }
+
+            _machine.TryEnter(ClientSessionState.Superseded);
+            _terminal.Freeze();
+        }
+
         private void HandleDisconnect()
         {
+            if (_superseded)
+            {
+                ReleaseAll();
+                _machine.TryEnter(ClientSessionState.Superseded);
+                _terminal.Freeze();
+                return;
+            }
+
             ulong next = _reconnect.NextGeneration(_generations);
             ReleaseAll();
             _scopeGate.Reset();
             _config.Clear();
             _machine.TryEnter(ClientSessionState.Reconnecting);
             StartGeneration(next);
+        }
+
+        private void DrainReplicaOutbound()
+        {
+            if (_replica == null || _connection == null)
+            {
+                return;
+            }
+
+            IReadOnlyList<WorldMessage> outbound;
+            try
+            {
+                outbound = _replica.World.DrainOutbound();
+            }
+            catch (InvalidOperationException)
+            {
+                return;
+            }
+
+            for (int i = 0; i < outbound.Count; i++)
+            {
+                InputCommandMessage? input = outbound[i] as InputCommandMessage;
+                if (input == null)
+                {
+                    continue;
+                }
+
+                _connection.TrySend(new EncodedFrame(input.Payload));
+            }
         }
 
         private void ReleaseAll()

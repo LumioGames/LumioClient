@@ -10,7 +10,10 @@
       "Lumio.Client.Observability"
     ],
     "Lumio.Client.Replica": [
-      "Lumio.Client.Observability"
+      "Lumio.Client.Observability",
+      "Lumio.GameRuntime.Ecs",
+      "Lumio.GameRuntime.Replication",
+      "Lumio.GameRuntime.Samples.Username.Client"
     ],
     "Lumio.Client.Prediction": [
       "Lumio.Client.Observability"
@@ -42,7 +45,10 @@
     "Lumio.Client.Bot": [
       "Lumio.Client.Session",
       "Lumio.Client.Input",
-      "Lumio.Client.Observability"
+      "Lumio.Client.Observability",
+      "Lumio.GameRuntime.Ecs",
+      "Lumio.GameRuntime.Replication",
+      "Lumio.GameRuntime.Samples.Username.Client"
     ],
     "Lumio.Client.Hello": []
   },

@@ -159,7 +159,7 @@ internal static class ReplicaRequests
             0,
             toRevision,
             sequence,
-            update ?? new byte[] { 1 },
+            update ?? System.Text.Encoding.UTF8.GetBytes(Lumio.Client.Replica.ReplicaC1Frames.EmptyFullSnapshotJson),
             tombstones ?? Array.Empty<ulong>(),
             touched ?? Array.Empty<ulong>());
     }
@@ -181,7 +181,7 @@ internal static class ReplicaRequests
             fromRevision,
             toRevision,
             sequence,
-            update ?? new byte[] { 2 },
+            update ?? System.Text.Encoding.UTF8.GetBytes("{\"messageType\":\"Delta\",\"tickId\":0,\"revision\":0,\"changedBlocks\":[]}"),
             tombstones ?? Array.Empty<ulong>(),
             touched ?? Array.Empty<ulong>());
     }

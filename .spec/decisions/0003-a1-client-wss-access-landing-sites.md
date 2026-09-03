@@ -29,3 +29,9 @@ R-00055「详细要求」第 1 条要求实现 BCL Socket/SslStream/Pipelines Re
 - 决策 3 把远程传输与 LocalEmbedded 放进同一程序集,二者共享 `IClientConnection` 上层语义;代价是 `modules/connection` 的内部文件数增长,收益是零闸门改动、零新增 NuGet、零 allowlist 变更。
 - 三项裁决均不触碰架构源 D-009（RPC/Message dispatch）与 D-011（Auth wire）冻结面,不改 Server 侧所有权。与 LumioServer 双向确认的常量（`productId` / `gameReleaseId` / `protocolVersion` / WS 子协议名与三段位序 / close 1008 语义）**都不是公共契约**,D-011 冻结凭据承载方式后即改用公共形态并删除私有约定。
 - 详细设计、逐条现状回应、阻塞清单与引用纪律在 [`docs/specs/2026-08-28-client-a1-wss-design.md`](../../docs/specs/2026-08-28-client-a1-wss-design.md) 维护;本记录只留决策与理由。
+
+## 修订记录
+
+### 2026-09-03 · ADR-058 §17 开放 Client 对 Runtime ECS 的工程引用
+
+按 ADR-058 第 17 条，Client 生产模块 `Lumio.Client.Replica` 与 `Lumio.Client.Bot` 直接引用 Runtime `Lumio.GameRuntime.Ecs`、`Lumio.GameRuntime.Replication` 与 `Lumio.GameRuntime.Samples.Username.Client`（均 netstandard2.1）。`eng/project-reference-allowlist.json` 同步放行这些边。本修订不改写上文 A1 三项落点裁决。

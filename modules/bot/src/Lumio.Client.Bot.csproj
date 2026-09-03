@@ -7,9 +7,17 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Lumio.Client.Bot.Tests" />
   </ItemGroup>
+  <Target Name="EnsureLumioRuntimeRoot" BeforeTargets="Restore;CollectPackageReferences;PrepareForBuild">
+    <Error Condition="'$(LumioRuntimeRoot)' == '' OR !Exists('$(LumioRuntimeRoot)\modules\ecs\src\Lumio.GameRuntime.Ecs\Lumio.GameRuntime.Ecs.csproj')" Text="BLOCKED: LumioRuntimeRoot is not set and sibling LumioGameRuntime was not found." />
+  </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\session\src\Lumio.Client.Session.csproj" />
     <ProjectReference Include="..\..\input\src\Lumio.Client.Input.csproj" />
     <ProjectReference Include="..\..\observability\src\Lumio.Client.Observability.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(LumioRuntimeRoot)' != '' AND Exists('$(LumioRuntimeRoot)\modules\ecs\src\Lumio.GameRuntime.Ecs\Lumio.GameRuntime.Ecs.csproj')">
+    <ProjectReference Include="$(LumioRuntimeRoot)\modules\ecs\src\Lumio.GameRuntime.Ecs\Lumio.GameRuntime.Ecs.csproj" />
+    <ProjectReference Include="$(LumioRuntimeRoot)\modules\replication\src\Lumio.GameRuntime.Replication\Lumio.GameRuntime.Replication.csproj" />
+    <ProjectReference Include="$(LumioRuntimeRoot)\modules\ecs\samples\username\Lumio.GameRuntime.Samples.Username.Client.csproj" />
   </ItemGroup>
 </Project>

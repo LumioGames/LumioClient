@@ -7,8 +7,8 @@ namespace Lumio.Client.Replica.Tests.Support;
 
 internal static class GameplayWireFixtures
 {
-    public const string ChatEventPayload = "0100000000000000010000000000000065000000000000000200000067670700000000000000";
-    public const string ChatEventSha256 = "9fafc556e56dc024a90caf7c102dfccfed4189c708e0a51b0139aab28277670c";
+    public const string ChatEventPayload = "01000000000000000100000000000000000000000000000065000000000000000200000067670700000000000000";
+    public const string ChatEventSha256 = "019c19137fdcc3eadf322f67067c254ef33fc2f81a7123bc89253d9a41d0d179";
     public const string ChatInputPayload = "020000006767";
     public const string ChatInputSha256 = "5dbd584f1718b8bcd0dab4abeea83169f4a990defab81a8316ed845798d92dab";
     public const string ChatComponentPayload = "0200000067670700000000000000";
@@ -132,10 +132,11 @@ internal static class GameplayWireFixtures
         ulong appliedTick)
     {
         byte[] utf8 = Encoding.UTF8.GetBytes(text);
-        byte[] bytes = new byte[8 + 8 + 8 + 4 + utf8.Length + 8];
+        byte[] bytes = new byte[8 + 8 + 8 + 8 + 4 + utf8.Length + 8];
         int offset = 0;
         WriteU64(bytes, ref offset, messageId);
         WriteU64(bytes, ref offset, roomSequence);
+        WriteU64(bytes, ref offset, 0UL);
         WriteU64(bytes, ref offset, senderNetEntityId);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset, 4), (uint)utf8.Length);
         offset += 4;

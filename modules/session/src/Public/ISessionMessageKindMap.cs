@@ -8,7 +8,8 @@ namespace Lumio.Client.Session
         FullSnapshot = 1,
         Delta = 2,
         Gap = 3,
-        AuthorityUpdate = 4
+        AuthorityUpdate = 4,
+        ConnectionSuperseded = 5
     }
 
     public interface ISessionMessageKindMap

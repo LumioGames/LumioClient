@@ -19,5 +19,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\src\Lumio.Client.Session.csproj" />
+    <ProjectReference Include="..\..\replica\src\Lumio.Client.Replica.csproj" />
+    <ProjectReference Include="..\..\connection\src\Lumio.Client.Connection.csproj" />
+    <ProjectReference Include="..\..\handshake\src\Lumio.Client.Handshake.csproj" />
   </ItemGroup>
 </Project>
