@@ -1,10 +1,10 @@
 # replica
 
-> 校验并应用权威 Snapshot/Delta/Mapping，将 Server 状态投影到独立的客户端 Replica World。
+> 校验并应用权威 Snapshot/Delta/Mapping，将 Server 状态投影到独立的客户端 World（同一 World Manager）。
 
 ## 状态
 
-- 阶段：R-00349 ReplicaWorld 映射与 Room 聊天呈现已落地；Snapshot/Delta 事务路径沿用既有 Stage/Observe
+- 阶段：R-00349 客户端映射与 Room 聊天呈现已落地；R4-04 将属性袋换为 Runtime 客户端 World。Snapshot/Delta 事务路径沿用既有 Stage/Observe
 - 优先级：P0
 - 架构基线：`LGE-V1.2-2026-08-27`
 - 公共契约来源：[`World、ECS 与 Entity`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#5-worldecs-与-entity)、[`Replication、Prediction 与网络`](../../docs/architecture/LumioGameEngine_Architecture_v1.2.md#7-replicationprediction-与网络)、架构仓 `engine/wire/gameplay-command-envelope-v1.json`（C-1）、`engine/wire/entity-binding-and-query-v1.json`（C-2）
@@ -16,7 +16,7 @@
 - 维护客户端 Baseline、SnapshotId、ReplicationRevision、Sequence 和 Mapping Hash 视图。
 - 使用生成 Mapping 将 Server Component 投影到允许的 Client Component/Field。
 - 维护 `NetEntityId -> LocalEntityId` 映射、Destroy Tombstone 和 provisional ID 确认重映射。
-- 为每个连接维护独立 `ReplicaWorld`：准入绑定、可见实体投影、client-replica Attribute Query、以及仅经权威事务提交后追加的 Room 聊天呈现（投递闸是 C-1 信封/序号，不是接收方 sender AOI）。FullSnapshot 按 `entity.identity` 普查重建实体集并清空聊天窗；`ConnectionSuperseded` 停止输入且不自动重连。
+- 为每个连接维护独立客户端 World：`WorldManager.Create(GeneratedRegistry.Instance)`（不传 instanceId），欢迎消息绑 `World.Self`，创建 / 字段 / 销毁记录进客户端提交相。准入绑定、可见实体投影、Attribute Query 走同一世界。聊天到达即交给 UI（ECS 不存窗口）。`ConnectionSuperseded` 停止输入且不自动重连。
 - 检测 Gap、未知 Baseline、旧 Revision、重复/迟到 Delta、Mapping 不匹配和 Tombstone 冲突。
 - 输出 Apply Result、BaselineAck/DeltaAck 或明确的 ResyncRequest 原因。
 
@@ -25,7 +25,7 @@
 - 不保存或修改 Server 权威 World，不要求 Server/Client Component 对称。
 - 不定义 Snapshot、Delta、Entity、Mapping 或 Component Schema。
 - 不维护 Prediction History，不决定如何回滚或重放未确认命令。
-- 不直接操作 GameObject、Renderer、UI、DOM 或其他表现对象。聊天窗是客户端呈现副本，不是 ReplicaWorld 权威，也不从 FullSnapshot 恢复历史。
+- 不直接操作 GameObject、Renderer、UI、DOM 或其他表现对象。聊天窗归 UI 层，不是 ECS 权威，也不从 FullSnapshot 恢复历史。
 - 不手写 Component 布局、字段 ID、MessageId 或 Canonical Serializer。
 - 不扩展 hello-wire-v1；玩法信封与绑定/查询以 C-1 / C-2 JSON 为字段真值。
 - 不直连服务端数据库、不共享跨连接 World/Entity 存储、不对服务端 Entity 行使客户端权威。
@@ -86,6 +86,6 @@
 
 ## 目录
 
-- `src/Public`：`IClientReplica`、`ReplicaWorld` / `IReplicaWorld`、`ReplicaChatConsumer`。
+- `src/Public`：`IClientReplica`、客户端 World 门面（现行类型名仍可能叫 `ReplicaWorld`，R4-04 退役属性袋后持 `WorldManager`）、`ReplicaChatConsumer`。
 - `src/Internal`：权威 Stage/Observe、C-1 信封解码、C-2 属性声明表。
 - 生成 Contract 和 Mapping 是外部构建产物，不复制到本模块维护第二套源文件。C-1/C-2 living wire JSON 由测试定位架构仓 `origin/main`，本仓不内嵌协议副本。

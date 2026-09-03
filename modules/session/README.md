@@ -17,7 +17,7 @@
 - 声明平台无关的 Gameplay Scope 激活端口并在 Handshake 接受后调用；预编译路径的默认实现直接返回已激活，HybridCLR 实现由 Release Composition 注入。
 - 执行 Active 消息门：调用生成的 Protocol/Permission Validator 校验 SessionId、GameReleaseId、MessageId、Role、Claims 和 Connection Generation；未通过的消息不得进入 Replica/Prediction（校验矩阵见设计文档第 13 节）。
 - 编排权威更新事务：收集 Replica/Prediction 的 Staged Plan、发起单一 Runtime 事务，提交成功后才允许推进元数据并发送 Ack。
-- 唯一拥有 Session 级 Runtime Handle（ReplicaWorld 与 VoxelReplicaWorld 两个独立 Handle）的创建与逆序销毁（先 Voxel 后 ECS）；在 Tick 边界唯一请求 Config staging/activation。
+- 唯一拥有 Session 级 Runtime Handle（客户端 World 与 VoxelReplicaWorld 两个独立 Handle）的创建与逆序销毁（先 Voxel 后 ECS）；在 Tick 边界唯一请求 Config staging/activation。
 - 保存 `SessionId + ProductId + GameReleaseId` 关联及一次 Session 内不可变的 Capability 结果。
 - 接收 Host 的 Tick 驱动，在正确的 Runtime Phase 调用 Replica/Prediction 能力。
 - 决定 Resync/Reconnect 期间输入是继续有界缓冲、丢弃还是拒绝，并把策略交给 `input` 执行。

@@ -1,23 +1,36 @@
 ---
 name: replica-world-chat
-description: ReplicaWorld 绑定/查询与 Room 聊天呈现——改 Replica 实体映射、Attribute Query 或 Browser/Bot 聊天窗时查
+description: 客户端 World 绑定/查询与聊天呈现——改 Client World、Attribute Query 或 UI 聊天窗时查
 metadata:
   type: doc
-  status: 已交付
+  status: 实施中
 ---
 
-# ReplicaWorld 实体映射与聊天呈现
+# 客户端 World 与聊天呈现
 
-每个客户端连接拥有独立 `ReplicaWorld`。FullSnapshot/Delta 只经既有 `StageAuthority` → Runtime 事务 → `ObserveRuntimeOutcome` 提交后才写入实体或聊天窗。
+每个客户端连接拥有一份客户端 World，由同一 `WorldManager` 类创建（ADR-058 §17），不再是字符串属性袋。设计真值在架构仓 `ecs.md` M1a / M4 / §4.5；本仓只记 Client 消费口径。
 
-## 设计
+## 客户端建世界
 
-- **绑定与查询**：准入写入 C-2 五元组；`SelfLookup` 与 `QueryAttribute` 只读本连接副本。client-replica 仅可读 `replication=replicated` 且当前可见的 AttributeId；persist-only / server-only 返回 `invisible`。
-- **FullSnapshot 重建**：重连/首入只按 C-1 `stateBlocks` 重建实体集。活体 Room 恰好一块 `entity.identity`（LumioBinV1 数组 `{netEntityId, entityType, unmappedMark}`，按 id 升序）。实体集等于解码 records，不是空 `[]` 占位；空数组表示零活体。旧代次实体不残留。聊天窗清空且不回放历史。重建成功后再启用输入。
-- **ConnectionSuperseded**：旧连接收到该通知后停止输入并记录 `connection_superseded`，不自动重连。
-- **聊天呈现**：`chat.event` 仅经 Delta 追加到客户端聊天窗（MessageId、Room sequence、sender NetEntityId、text）。C-1 `visibility=room` 只校验信封/摘要/序号/text 上限；接收方是否已 Admit 发送者、发送者是否 InAoi / tombstoned 只影响 Attribute Query，不决定是否入窗。畸形信封在 Stage 拒绝，零可见突变。
-- **消费者**：`ReplicaChatConsumer` 区分 Browser 与 Bot；二者不得共享 World/Entity 引用。浏览器静态页 `modules/web/chat/` 只渲染已接受事件，不扩展 hello-wire-v1。Bot 发言节奏由 Client Timer Manager 适配层消费 NativeCore `tickFrame`（N=5），每次触发提交一条 `chat.input`；Client 不自建定时器或绑定表。
-- **契约**：字段真值是架构仓 C-1 / C-2 JSON。测试定位架构仓检出，本仓不内嵌协议副本。C-1 `entity.identity` 金样在 replica 测试夹具中按 pin `997bcf3` 校验编码器。
+- 写法与服务器相同：`WorldManager.Create(GeneratedRegistry.Instance)`，**不传 `instanceId`**（客户端不发号；生成注册表自带端别）。
+- 连上后前两条消息：欢迎消息（世界实例 ID + 自己的 NetEntityId）经 `Enqueue(WorldMessage)` 在提交相绑 `World.Self`；第一条创建记录是游戏声明的 WorldEntity。
+- FullSnapshot / Delta 解码为创建 / 字段变化 / 销毁记录，进客户端提交相；创建优先。客户端建实体：同一 EntityType 模板 → Awake → PostAttribute → Start。
+- 字段上行只按 `Authority.Owner`。Bot.Host 用同一客户端 World。
+
+## 同进程双端
+
+单机 / 本地联调 = 两个 Manager（服务器程序集一个、客户端程序集一个）+ 内存环回（`server.outbox → client.Enqueue`）。回调、同步、权限、校验与联网零差异。不共用一个 World。
+
+## 变化钩子
+
+每个 `Sync` 字段一对可选 partial：`OnXChanging` / `OnXChanged(old, new, reason)`（容器 `ListChange` / `DictChange`）。默认 `Notify.Remote` 只收对端（`Sync` / `Correction`）；自己写自己不收。`Notify.All` 才收 `Local`。首次填值不触发；整包先写入再统一触发 Changed。WhenAll 组合器后置（架构仓 ecs.md §6）。
+
+## 绑定、查询与聊天
+
+- **绑定与查询**：准入写入 C-2 五元组（`entityType` 由 `TypeOf` 派生，无 `IdentityComponent.Kind`）；`Self` 与 `QueryAttribute` 只读本连接这份世界。
+- **ConnectionSuperseded**：旧连接收到后停止输入，不自动重连，回登录界面。
+- **聊天**：`OnChatMessage(string line)` 到达即交给 UI。ECS 组件上不留窗口字段；不从 FullSnapshot 回放历史。服务器把「名字: 内容」拼进 `line`（C-1 不加字段，按 UTF-8 字节卡 512）。
+- **契约**：字段真值是架构仓 C-1 / C-2 JSON。本仓不内嵌协议副本。
 
 ## 相关
 
