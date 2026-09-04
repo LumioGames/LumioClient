@@ -161,7 +161,8 @@ async function sha256Hex(text) {
 
 async function main() {
   const params = new URLSearchParams(window.location.search);
-  const serverUrl = params.get("ws");
+  let serverUrl = params.get("ws");
+  let launchCredential = null;
   result.role = params.get("role") || "browser";
 
   renderStatus("running", "waiting for contract.json …");
@@ -185,7 +186,34 @@ async function main() {
   }
 
   const validate = makeValidator(contract);
-  const subprotocol = contract.transport?.subprotocol ?? undefined;
+  let subprotocol = contract.transport?.subprotocol ?? undefined;
+  if (!serverUrl) {
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    const gamesIndex = parts.indexOf("games");
+    const slug = gamesIndex >= 0 ? parts[gamesIndex + 1] : null;
+    if (!slug) {
+      renderStatus("running", "waiting for game slug");
+      return;
+    }
+    try {
+      const launchResponse = await fetch(`/api/games/${encodeURIComponent(slug)}/launch`, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        credentials: "same-origin",
+      });
+      if (!launchResponse.ok) throw new Error(`HTTP ${launchResponse.status}`);
+      const launch = await launchResponse.json();
+      if (typeof launch.wsUrl !== "string" || typeof launch.admissionCredential !== "string") {
+        throw new Error("launch response lacks connection fields");
+      }
+      serverUrl = launch.wsUrl;
+      launchCredential = launch.admissionCredential;
+      if (typeof launch.subprotocol === "string") subprotocol = launch.subprotocol;
+    } catch (error) {
+      setError("launch_failed", `launch request failed: ${error.message}`);
+      return;
+    }
+  }
   const metaState = {
     role: result.role,
     contractId: contract.contractId,
@@ -385,12 +413,14 @@ async function main() {
   }
 
   socket.onopen = () => {
-    send({
+    const handshake = {
       messageType: "Handshake",
       role: result.role,
       clientName: "lumio-browser",
       contractId: contract.contractId,
-    });
+    };
+    if (launchCredential) handshake.admissionCredential = launchCredential;
+    send(handshake);
     renderStatus("running", "connected, handshaking …");
   };
   socket.onmessage = (event) => {
