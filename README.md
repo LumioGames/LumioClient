@@ -28,7 +28,7 @@
 - 唯一架构源：`LumioGameEngineArchitecture`
 - 本地镜像：[`docs/architecture/LumioGameEngine_Architecture_v1.2.md`](docs/architecture/LumioGameEngine_Architecture_v1.2.md)
 
-`LumioClient` 是客户端基础设施，不是具体游戏产品。它拥有连接、握手、ClientReplicaSession、ReplicaWorld、输入和平台适配；Runtime 提供复制/回滚机制，Game 提供具体 Component/Mapping/表现内容。Server 与 Client 永远拥有独立的本地状态。
+`LumioClient` 是客户端基础设施，不是具体游戏产品。它拥有连接、握手、ClientReplicaSession、客户端 World（同一 World Manager，不叫 ReplicaWorld）、输入和平台适配；Runtime 提供复制/回滚机制，Game 提供具体 Component/Mapping/表现内容。Server 与 Client 永远拥有独立的本地状态。
 
 ## Architecture Gate
 
@@ -37,7 +37,7 @@ Handshake、Replication/Prediction、Mapping、Entity、Capability 和 Failure B
 ## 拥有的状态与生命周期
 
 - Connection、Handshake、Endpoint、断线、重连、Transport ACK、Baseline ACK、Gap 和 Resync。
-- Client `ReplicaWorld`、`VoxelReplicaWorld`、LocalEntityId、Snapshot/Revision 和预测历史。
+- 客户端 World、`VoxelReplicaWorld`、LocalEntityId、Snapshot/Revision 和预测历史。
 - Input Sample、ClientCommandSeq、PredictionKey、Confirmation、Correction 和 Presentation 输出。
 - Unity Host、HybridCLR Capability、Renderer/Input Adapter 和 Headless Bot 生命周期。
 
@@ -138,7 +138,7 @@ LumioClient Host / Unity Host / Headless Bot
   -> CoreEngine Loader (one package)
   -> stable GameRuntime
   -> ClientGameplay.dll / HybridCLR module
-  -> ReplicaWorld + VoxelReplicaWorld
+  -> 客户端 World + VoxelReplicaWorld
 ```
 
 ## Release Composition Relationships

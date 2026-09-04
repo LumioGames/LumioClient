@@ -8,7 +8,7 @@ metadata:
 
 # ReplicaWorld 实体映射与聊天呈现
 
-每个客户端连接拥有独立 `ReplicaWorld` 薄门面，内部是 Runtime `WorldManager.Create(GeneratedRegistry.Instance)`（不传 instanceId）。FullSnapshot/Delta 只经既有 `StageAuthority` → Runtime 事务 → `ObserveRuntimeOutcome` 提交后才 `Enqueue` 到客户端 World。
+每个客户端连接拥有独立客户端 World，现行 `ReplicaWorld` API 是其薄门面，内部是 Runtime `WorldManager.Create(GeneratedRegistry.Instance)`（不传 instanceId）。FullSnapshot/Delta 只经既有 `StageAuthority` → Runtime 事务 → `ObserveRuntimeOutcome` 提交后才 `Enqueue` 到客户端 World。
 
 ## 设计
 

@@ -16,7 +16,7 @@ metadata:
 
 ## 所有权边界
 
-- 本仓拥有 Connection/Handshake、ClientReplicaSession、ReplicaWorld/VoxelReplicaWorld、Input/Prediction 历史、Unity/HybridCLR Host 与 Headless Bot 生命周期。
+- 本仓拥有 Connection/Handshake、ClientReplicaSession、客户端 World / VoxelReplicaWorld、Input/Prediction 历史、Unity/HybridCLR Host 与 Headless Bot 生命周期。
 - Runtime 提供复制、回滚和状态语义，Game 提供 Component/Mapping/表现内容；Client 只负责连接、调用和呈现。
 - 本仓不拥有 Server 权威状态、Server Wall Clock、Release Pool、Voxel 内部存储或第二套 NativeCore/VoxelEngine。
 - Server 与 Client 永远拥有独立本地状态；LocalEmbedded 也必须走完整 Schema、Envelope、权限、大小限制、有界队列和 Tick 交付路径。
