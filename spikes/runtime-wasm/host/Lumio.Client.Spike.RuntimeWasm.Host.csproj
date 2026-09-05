@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Lumio.Client.Spike.RuntimeWasm.Host</AssemblyName>
+    <RootNamespace>Lumio.Client.Spike.RuntimeWasm.Host</RootNamespace>
+    <Description>CL-1 探针宿主（macOS 替身）：现行 Rust 宿主 lumio-entity-chat-replay 在 macOS 编不过（kernel32 / Windows-only loader），本工程用 Runtime 公开 API（EntityBindingQuery + ChatCommandRuntime + ChatEnvelope）复现同一条 C-1 wire：connectionId 首帧、FullSnapshot、每 tick Delta 广播、InputCommand 准入。</Description>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(LumioRuntimeRoot)/modules/ecs/src/Lumio.GameRuntime.Ecs/Lumio.GameRuntime.Ecs.csproj" />
+    <ProjectReference Include="$(LumioRuntimeRoot)/modules/replication/src/Lumio.GameRuntime.Replication/Lumio.GameRuntime.Replication.csproj" />
+    <ProjectReference Include="$(LumioRuntimeRoot)/modules/ecs/samples/username/Lumio.GameRuntime.Samples.Username.Server.csproj" />
+  </ItemGroup>
+</Project>

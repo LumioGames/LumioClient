@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>Lumio CL-1 · Runtime WASM 探针（Web Worker 变体）</title>
+  <meta charset="UTF-8">
+  <!-- 不用 index.html 的占位符机制：本页脚本用 .mjs 后缀（不被指纹改名），dotnet.js 的指纹名从 index.html 的 importmap 里读。 -->
+  <script type='module' src="worker-host.mjs"></script>
+</head>
+<body>
+  <h1>Runtime WASM 探针 · 模拟挪进 Web Worker</h1>
+  <p id="status">starting worker …</p>
+  <pre id="log"></pre>
+</body>
+</html>

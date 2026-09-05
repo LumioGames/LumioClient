@@ -1,0 +1,12 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+page.waitForFunction: Target page, context or browser has been closed
+    at waitReady (/Users/cui/LumioGames/LumioClient/spikes/runtime-wasm/tools/measure.mjs:33:14)
+    at Object.rebuild (/Users/cui/LumioGames/LumioClient/spikes/runtime-wasm/tools/measure.mjs:62:36)
+    at async file:///Users/cui/LumioGames/LumioClient/spikes/runtime-wasm/tools/measure.mjs:175:1 {
+  log: []
+}
+
+Node.js v26.4.0

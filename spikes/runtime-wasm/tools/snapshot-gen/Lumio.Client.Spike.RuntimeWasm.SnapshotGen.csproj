@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Lumio.Client.Spike.RuntimeWasm.SnapshotGen</AssemblyName>
+    <RootNamespace>Lumio.Client.Spike.RuntimeWasm.SnapshotGen</RootNamespace>
+    <Description>CL-1 探针：用样板服务器注册表生成 N 个玩家实体的世界快照（LWM1），作为浏览器重建基准的输入。</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(LumioRuntimeRoot)/modules/ecs/src/Lumio.GameRuntime.Ecs/Lumio.GameRuntime.Ecs.csproj" />
+    <ProjectReference Include="$(LumioRuntimeRoot)/modules/ecs/samples/username/Lumio.GameRuntime.Samples.Username.Server.csproj" />
+  </ItemGroup>
+</Project>

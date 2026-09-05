@@ -1,0 +1,19 @@
+<Project>
+  <!--
+    探针工程根（CL-1 调研）。MSBuild 就近取用本文件后即停止向上查找，因此仓根 Directory.Build.props
+    强加的 netstandard2.1 / LangVersion 9.0 / LumioProduction=true 不会落到 spikes/ 下的任何工程。
+    本目录不是生产代码：不进 modules/、不进 allowlist、不进 CI、不进 LumioClient.slnx。
+  -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <LumioProduction>false</LumioProduction>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <LumioSpikeRoot>$(MSBuildThisFileDirectory)</LumioSpikeRoot>
+    <!-- Runtime 仓位置：环境变量 LUMIO_RUNTIME_ROOT 优先，否则按同级 ../LumioGameRuntime 发现；不写开发机绝对路径。 -->
+    <LumioRuntimeRoot Condition="'$(LumioRuntimeRoot)' == '' AND '$(LUMIO_RUNTIME_ROOT)' != ''">$(LUMIO_RUNTIME_ROOT)</LumioRuntimeRoot>
+    <LumioRuntimeRoot Condition="'$(LumioRuntimeRoot)' == '' AND Exists('$(MSBuildThisFileDirectory)../../../LumioGameRuntime')">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../LumioGameRuntime'))</LumioRuntimeRoot>
+  </PropertyGroup>
+</Project>

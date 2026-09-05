@@ -1,0 +1,14 @@
+[console.error] Failed to load resource: the server responded with a status of 404 (Not Found)
+RESULT {"scenario":"wire-first-frame","browser":"152.0.7977.82","ws":"ws://127.0.0.1:47312/","decoded":{"ok":true,"code":null,"detail":null,"decodeMs":111,"bytes":4056,"event":null},"bytes":4056,"rawHead":"{\"messageType\":\"FullSnapshot\",\"tickId\":14648,\"revision\":102,\"stateBlocks\":[{\"mappingId\":\"entity.identity\",\"payload\":\"65000000020000000000000003000000626f7400000"}
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+page.evaluate: Error: echo timeout for hello-from-wasm-2
+    at http://127.0.0.1:47380/main.y24gsvwpgh.js:93:85
+    at Object.wire (/Users/cui/LumioGames/LumioClient/spikes/runtime-wasm/tools/measure.mjs:88:27)
+    at async file:///Users/cui/LumioGames/LumioClient/spikes/runtime-wasm/tools/measure.mjs:172:1 {
+  log: []
+}
+
+Node.js v26.4.0
