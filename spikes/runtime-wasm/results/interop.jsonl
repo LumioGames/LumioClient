@@ -1,0 +1,18 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+page.evaluate: TypeError: Cannot convert undefined to a BigInt
+    at BigInt (<anonymous>)
+    at http://127.0.0.1:47380/main.y24gsvwpgh.js:139:63
+    at bench (http://127.0.0.1:47380/main.y24gsvwpgh.js:128:5)
+    at spike.interop (http://127.0.0.1:47380/main.y24gsvwpgh.js:139:5)
+    at eval (eval at evaluate (:311:30), <anonymous>:1:22)
+    at UtilityScript.evaluate (<anonymous>:313:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+    at Object.interop (/Users/cui/LumioGames/LumioClient/spikes/runtime-wasm/tools/measure.mjs:111:107)
+    at async file:///Users/cui/LumioGames/LumioClient/spikes/runtime-wasm/tools/measure.mjs:156:1 {
+  log: []
+}
+
+Node.js v26.4.0

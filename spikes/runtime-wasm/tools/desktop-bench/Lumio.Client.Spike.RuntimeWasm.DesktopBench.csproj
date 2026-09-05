@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Lumio.Client.Spike.RuntimeWasm.DesktopBench</AssemblyName>
+    <RootNamespace>Lumio.Client.Spike.RuntimeWasm.DesktopBench</RootNamespace>
+    <Description>CL-1 探针：桌面 net10.0（CoreCLR）上跑与 wasm 同一份重建基准与哈希，作对照与逐位比对。</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../bench/Lumio.Client.Spike.RuntimeWasm.Bench.csproj" />
+  </ItemGroup>
+</Project>

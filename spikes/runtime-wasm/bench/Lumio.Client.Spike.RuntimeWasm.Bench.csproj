@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Lumio.Client.Spike.RuntimeWasm.Bench</AssemblyName>
+    <RootNamespace>Lumio.Client.Spike.RuntimeWasm</RootNamespace>
+    <Description>CL-1 探针共享代码：客户端世界拉起、C-1 解包桥、重建基准、世界哈希、表现差集样例。桌面基准与 wasm 应用同一份代码。</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(LumioRuntimeRoot)/modules/ecs/src/Lumio.GameRuntime.Ecs/Lumio.GameRuntime.Ecs.csproj" />
+    <ProjectReference Include="$(LumioRuntimeRoot)/modules/replication/src/Lumio.GameRuntime.Replication/Lumio.GameRuntime.Replication.csproj" />
+    <ProjectReference Include="$(LumioRuntimeRoot)/modules/ecs/samples/username/Lumio.GameRuntime.Samples.Username.Client.csproj" />
+  </ItemGroup>
+</Project>

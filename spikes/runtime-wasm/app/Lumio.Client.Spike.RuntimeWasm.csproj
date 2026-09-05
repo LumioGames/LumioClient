@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <!--
+    CL-1 探针：.NET 10 browser-wasm 应用（dotnet new wasmbrowser 模板形状，非 Blazor），装载 Runtime 的
+    Ecs + Replication + Samples.Username.Client 三个程序集在浏览器里跑。
+    变体开关（命令行传入，不改本文件）：
+      -p:RunAOTCompilation=true   AOT 开
+      -p:PublishTrimmed=false     裁剪关
+      -p:WasmEnableThreads=true   多线程（需要站点发 COOP / COEP）
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Lumio.Client.Spike.RuntimeWasm</AssemblyName>
+    <RootNamespace>Lumio.Client.Spike.RuntimeWasm</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../bench/Lumio.Client.Spike.RuntimeWasm.Bench.csproj" />
+    <StaticWebAssetFingerprintPattern Include="JS" Pattern="*.js" Expression="#[.{fingerprint}]!" />
+  </ItemGroup>
+</Project>

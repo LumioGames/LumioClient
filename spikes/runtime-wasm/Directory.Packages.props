@@ -1,0 +1,6 @@
+<Project>
+  <!-- 探针目录自己的包版本文件：本调研不引入任何 NuGet 包；存在即阻断仓根 Directory.Packages.props 的就近查找。 -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

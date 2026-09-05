@@ -1,0 +1,52 @@
+{
+  "scenario": "hidden-tab-throttling",
+  "method": "Claude 桌面应用内嵌浏览器面板（Chromium 148.0.7778.280）打开探针页并连宿主 ws://127.0.0.1:47311/；面板处于隐藏状态（document.hidden=true）期间经 javascript_exec 读数。Playwright 两次尝试（另窗 / 同 context 新标签 + bringToFront）都未能让页面进入 document.hidden=true，故改用此法。",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.4 Chrome/148.0.7778.280 Safari/537.36",
+  "startup": {
+    "firstLoadWorldManagerReadyMs": 1045.1,
+    "reloadWorldManagerReadyMs": 129.7,
+    "reloadDotnetCreateMs": 100.6,
+    "reloadTransferBytes": 0,
+    "note": "同一份 publish/default 产物；首次加载 1045 ms，同一面板 location.reload() 后 130 ms（磁盘缓存 + V8 wasm 代码缓存命中）。对照 Playwright 起的 Chrome 152：空缓存 5.2–5.6 s、热缓存 4.1–4.4 s（含持久化 profile 连续 4 次）。"
+  },
+  "hiddenAtStart": true,
+  "setTimeout50ChainWhileHidden": {
+    "probeElapsedMs": 19683,
+    "ticksFired": 7,
+    "firstStampsMs": [
+      1045,
+      2045,
+      3045,
+      4044,
+      5045,
+      6044,
+      18045
+    ],
+    "intervalsMs": [
+      1000,
+      1000,
+      999,
+      1001,
+      999,
+      12001
+    ],
+    "reading": "隐藏时 setTimeout(50) 链被对齐到 1 s 一次；页面隐藏超过约 5 分钟后进入密集节流，间隔跳到 12 s"
+  },
+  "earlier12TickProbe": {
+    "result": "12 个 50 ms 链式 setTimeout 在 45 s 内未跑完（javascript_exec 超时）"
+  },
+  "webSocketWhileHidden": {
+    "elapsedMs": 160638,
+    "framesReceived": 3213,
+    "framesPerSecond": 20.0,
+    "maxIntervalMs": 62.3,
+    "decodeMsMedian": 0.3,
+    "decodeMsP95": 0.8,
+    "reading": "WebSocket message 事件不被节流：20 Hz 的 Delta 帧照常到达并被 C# 解包；积压不在 socket 层，而在依赖定时器推进的本地逻辑"
+  },
+  "timerJitterPromise900Samples": {
+    "doneAfterMs": 140955,
+    "done": false,
+    "reading": "900 个 50 ms 样本（前台 45 s）在隐藏 141 s 后仍未跑完"
+  }
+}

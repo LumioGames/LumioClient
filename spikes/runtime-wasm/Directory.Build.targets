@@ -1,0 +1,6 @@
+<Project>
+  <!-- 空文件：阻断仓根 Directory.Build.targets（BannedApiAnalyzers / System.Threading.Channels 注入）向探针工程传播。 -->
+  <Target Name="EnsureLumioRuntimeRootForSpike" BeforeTargets="Restore;CollectPackageReferences;PrepareForBuild">
+    <Error Condition="'$(LumioRuntimeRoot)' == '' OR !Exists('$(LumioRuntimeRoot)/modules/ecs/src/Lumio.GameRuntime.Ecs/Lumio.GameRuntime.Ecs.csproj')" Text="BLOCKED: LumioRuntimeRoot is not set and sibling LumioGameRuntime was not found (set LUMIO_RUNTIME_ROOT)." />
+  </Target>
+</Project>

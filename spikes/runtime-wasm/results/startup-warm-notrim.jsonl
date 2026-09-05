@@ -1,0 +1,26 @@
+[console.error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[console.error] [MONO] System.TypeLoadException: Could not resolve type with token 01000031 from typeref (expected class 'System.Runtime.InteropServices.RuntimeInformation' in assembly 'System.Runtime, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a')
+Error
+    at Mc (http://127.0.0.1:47384/_framework/dotnet.runtime.zbexyp8zrs.js:3:172284)
+    at http://127.0.0.1:47384/_framework/dotnet.native.nxw7lo0lh5.wasm:wasm-function[146]:0x7397
+    at http://127.0.0.1:47384/_framework/dotnet.native.nxw7lo0lh5.wasm:wasm-function[298]:0x1f773
+    at http://127.0.0.1:47384/_framework/dotnet.native.nxw7lo0lh5.wasm:wasm-function[222]:0x1ca98
+    at http://127.0.0.1:47384/_framework/dotnet.native.nxw7lo0lh5.wasm:wasm-function[213]:0xebe7
+    at http://127.0.0.1:47384/_framework/dotnet.native.nxw7lo0lh5.wasm:wasm-function[256]:0x1d974
+    at http://127.0.0.1:47384/_framework/dotnet.native.nxw7lo0lh5.wasm:wasm-function[3231]:0xf1881
+    at http://127.0.0.1:47384/_framework/dotnet.native.nxw7lo0lh5.wasm:wasm-function[2553]:0xc7139
+    at http://127.0.0.1:47384/_framework/dotnet.native.nxw7lo0lh5.wasm:wasm-function[2558]:0xc7931
+    at http://127.0.0.1:47384/_framework/dotnet.native.nxw7lo0lh5.wasm:wasm-function[2582]:0xca001
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+page.waitForFunction: Timeout 120000ms exceeded.
+    at waitReady (/Users/cui/LumioGames/LumioClient/spikes/runtime-wasm/tools/measure.mjs:33:14)
+    at Object.startup (/Users/cui/LumioGames/LumioClient/spikes/runtime-wasm/tools/measure.mjs:46:11)
+    at async file:///Users/cui/LumioGames/LumioClient/spikes/runtime-wasm/tools/measure.mjs:175:1 {
+  log: [],
+  name: 'TimeoutError'
+}
+
+Node.js v26.4.0

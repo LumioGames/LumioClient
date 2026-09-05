@@ -1,0 +1,4 @@
+node_modules/
+app/wwwroot/fixtures/*.lwm1
+results/tmp/
+publish/

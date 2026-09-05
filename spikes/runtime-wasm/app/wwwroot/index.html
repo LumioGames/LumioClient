@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <title>Lumio CL-1 · Runtime WASM 探针</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preload" id="webassembly" />
+  <script type="importmap"></script>
+  <script type='module' src="main#[.{fingerprint}].js"></script>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; margin: 1rem; color: #222; }
+    #status { font-weight: 600; }
+    pre { background: #f4f4f4; padding: .5rem; max-height: 14rem; overflow: auto; font-size: 12px; }
+    canvas { border: 1px solid #999; display: block; }
+  </style>
+</head>
+<body>
+  <h1>Runtime WASM 探针（CL-1）</h1>
+  <p id="status">loading dotnet …</p>
+  <p id="wire">wire: waiting for ?ws=ws://host:port/</p>
+  <canvas id="stage" width="800" height="600"></canvas>
+  <pre id="log"></pre>
+</body>
+</html>
